@@ -53,7 +53,7 @@ def get_clean_articles():
         SELECT link, title, summary, metadata
         FROM articles 
         WHERE source ILIKE 'Inoreader%' 
-          AND feed_label = 'AI'
+          AND feed_label IN ('AI News', 'Reddit AI')
           AND published >= now() - interval '24 hours'
     """
     cur.execute(query)

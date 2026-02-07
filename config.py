@@ -2,8 +2,8 @@
 RSS_FEEDS = [
     {
         "source": "Inoreader",
-        "label": "AI",
-        "link": "https://www.inoreader.com/stream/user/1003596242/tag/AI"
+        "label": "AI News",
+        "link": "https://www.inoreader.com/stream/user/1003596242/tag/AI%20News"
     },
     {
         "source": "Inoreader",
@@ -25,6 +25,11 @@ RSS_FEEDS = [
         "label": "World News",
         "link": "https://www.inoreader.com/stream/user/1003596242/tag/World%20News"
     },
+    {
+        "source": "Inoreader",
+        "label": "Reddit AI",
+        "link": "https://www.inoreader.com/stream/user/1003596242/tag/Reddit%20AI"
+    },    
     {
         "source": "HackerNews",
         "label": "Front Page",

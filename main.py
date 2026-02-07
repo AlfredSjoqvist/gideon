@@ -27,6 +27,7 @@ DB_URL = os.getenv("DATABASE_URL")
 GEMINI_KEY = os.getenv("GEMINI_API_KEY")
 TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
 TELEGRAM_CHAT_ID = os.getenv("TELEGRAM_CHAT_ID")
+PUSHCUT_KEY = os.getenv("PUSHCUT_KEY")
 
 WEIGHTS = {"engineering": 0.4, "industry": 0.4, "research": 0.2}
 BATCH_SIZE = 8
@@ -44,14 +45,24 @@ def normalize_url(url):
     url = url.lower().split('://')[-1].replace('www.', '')
     return url.strip('/')
 
-def send_telegram_msg(message):
-    url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage"
-    payload = {"chat_id": TELEGRAM_CHAT_ID, "text": message, "parse_mode": "HTML"}
+def send_pushcut_alert(title, hook, link):
+    """Sends a direct-to-browser notification via Pushcut."""
+    # This URL points to your defined 'Gideon_Alert' in the app
+    url = f"https://api.pushcut.io/v1/notifications/Gideon_Alert"
+    
+    headers = {"API-Key": PUSHCUT_KEY}
+    
+    payload = {
+        "title": title,
+        "text": hook,
+        "defaultAction": {"url": link}, # Tapping the notification opens this URL
+    }
+    
     try:
-        response = requests.post(url, data=payload)
+        response = requests.post(url, json=payload, headers=headers)
         response.raise_for_status()
     except Exception as e:
-        print(f"❌ Telegram Error: {e}")
+        print(f"❌ Pushcut Error: {e}")
 
 # --- CORE LOGIC ---
 def get_clean_articles():
@@ -162,12 +173,14 @@ def main():
 
     # --- TELEGRAM TOP 5 ---
     top_5 = final_ranked[:5]
-    msg = "🚀 <b>Top 5 AI Insights</b>\n\n"
-    for i, art in enumerate(top_5, 1):
-        msg += f"{i}. <b>{art['title']}</b>\n🔗 {art['link']}\n\n"
-    
-    send_telegram_msg(msg)
-    print("✅ Pipeline complete. Top 5 sent to Telegram.")
+    for art in top_5:
+        send_pushcut_alert(
+            title=art['title'],
+            hook="hey take a look...", # Snappy text for lockscreen
+            link=art['link']
+        )
+        time.sleep(1) # Small delay to ensure they arrive in order
+    print("✅ Pipeline complete. Top 5 sent to Pushcut.")
 
 if __name__ == "__main__":
     main()
