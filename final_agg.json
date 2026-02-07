@@ -1,0 +1,1030 @@
+[
+    {
+        "link": "https://www.reddit.com/r/artificial/comments/1qy61p6/moltbook_could_have_been_better/",
+        "title": "Moltbook Could Have Been Better",
+        "raw_scores": {
+            "engineering": [
+                88,
+                85,
+                95
+            ],
+            "industry": [
+                95,
+                90,
+                90
+            ],
+            "research": [
+                95,
+                30
+            ]
+        },
+        "rationales": {
+            "engineering": [
+                "The Moltbook incident, detailing security vulnerabilities in a popular AI agent platform and the failure to implement known safety measures, provides a crucial lesson about the importance of AI safety and responsible development. The rapid adoption followed by security failures makes this a case study relevant for future projects.",
+                "The Moltbook case serves as a cautionary tale about AI safety and security. Understanding vulnerabilities in AI platforms and the importance of robust safety frameworks is crucial for preventing future incidents.",
+                "The Moltbook incident highlights critical AI safety and security vulnerabilities, especially relevant for developers building AI applications. The analysis of how DeepMind's safety framework could have prevented the breaches offers actionable insights and lessons for the AI community. Understanding and preventing these types of failures is paramount for the responsible development and deployment of AI."
+            ],
+            "industry": [
+                "This article highlights critical security vulnerabilities in a platform with a large user base (1.5M AI agents), directly mapping to failures in applying established safety frameworks from DeepMind. This has significant implications for the job market as it stresses the increasing importance of security expertise in AI development and deployment and the potential financial risks associated with neglecting safety protocols. It also underscores the need for AI engineers to prioritize security and safety in their projects, influencing long-term career growth by emphasizing responsible AI development.",
+                "The Moltbook incident, involving a leak of 1.5M API tokens, highlights critical security vulnerabilities in AI agent platforms. This underscores the importance of robust security measures and adherence to established safety frameworks, directly impacting the deployment and trust in enterprise-grade AI tools. Failure to address these vulnerabilities poses significant risks to companies building or integrating AI solutions.",
+                "This article highlights critical security vulnerabilities in Moltbook, a platform that rapidly gained traction. The fact that these vulnerabilities map directly to proposed defense layers in DeepMind's safety framework underscores the urgent need for robust security practices in AI development. This impacts the job market by emphasizing the growing demand for AI safety and security experts and highlights the importance of secure coding practices. Neglecting these practices can lead to significant financial and reputational damage, directly impacting company valuations."
+            ],
+            "research": [
+                "This article highlights a critical failure in the application of AI safety principles. The fact that a platform with 1.5 million AI agents failed to implement basic security measures outlined in a published safety framework, resulting in leaked API tokens and RCE vulnerabilities, underscores a significant gap between theoretical AI safety research and practical implementation. This points to a fundamental challenge in translating AI safety guidelines into real-world applications, making it highly relevant to AI architecture and responsible AI development.",
+                "This article discusses the security vulnerabilities in Moltbook, an AI agent platform, despite the existence of safety frameworks. It is important as it highlights the need to implement existing safety measures."
+            ]
+        },
+        "sub_combined": {
+            "engineering": 89.33,
+            "industry": 91.67,
+            "research": 62.5
+        },
+        "combined_score": 84.9
+    },
+    {
+        "link": "https://www.reddit.com/r/artificial/comments/1qxv9jg/goldman_sachs_taps_anthropic_s_claude_to_automate/",
+        "title": "Goldman Sachs taps Anthropic\u2019s Claude to automate accounting, compliance roles",
+        "raw_scores": {
+            "engineering": [
+                95,
+                95,
+                95
+            ],
+            "industry": [
+                95,
+                95,
+                95
+            ],
+            "research": [
+                30,
+                30,
+                40
+            ]
+        },
+        "rationales": {
+            "engineering": [
+                "This article showcases the practical application of AI (Anthropic's Claude) in a major financial institution for automating crucial roles. This demonstrates the real-world impact of AI on business processes and productivity, impacting a broad audience interested in AI implementation and automation.",
+                "This is highly significant because it demonstrates the real-world adoption of AI in crucial business functions within a major financial institution. It shows the potential for AI to impact white-collar jobs and offers insights into how large companies are implementing AI solutions. Understanding such implementations is crucial for guiding future AI adoption strategies and anticipating workforce changes.",
+                "This is significant because it demonstrates real-world adoption of AI in highly regulated and sensitive industries. The automation of accounting and compliance roles within a major financial institution highlights the potential for AI to drive efficiency and cost savings across the board. This move by Goldman Sachs may encourage other companies to pursue similar AI implementations."
+            ],
+            "industry": [
+                "This is highly important because it signals enterprise adoption of AI from a frontier lab. Goldman Sachs deploying Anthropic's Claude for critical functions like accounting and compliance directly impacts the job market for AI/ML engineers, showing a demand for skills related to integrating and maintaining such systems within large organizations. This has a substantial impact on career growth and potentially the valuation of Anthropic.",
+                "This is highly significant. A major financial institution like Goldman Sachs deploying Anthropic's Claude for core business functions like accounting and compliance signals a tangible shift in enterprise AI adoption. It has immediate implications for job roles, skills requirements, and the valuation of Anthropic.",
+                "This signals significant enterprise adoption of AI from a frontier lab (Anthropic). The specific use case (automating accounting and compliance) suggests a real impact on white-collar jobs and a potential shift in the demand for AI-related skills within the finance industry. This impacts company valuations and long-term career growth for AI/ML engineers in the enterprise space."
+            ],
+            "research": [
+                "The deployment of Anthropic's Claude for automation in finance is an incremental step. While it validates the practical application of AI, it doesn't represent a fundamental shift in AI architecture or training methodologies.",
+                "This is a deployment story. While important for Anthropic, it doesn't represent a fundamental shift in AI architecture or methodology. It shows industry adoption, but lacks research value.",
+                "This is an application of existing technology (Anthropic's Claude) to automate tasks in finance. While relevant to the adoption of AI in industry, it does not represent a fundamental advancement in AI architecture itself."
+            ]
+        },
+        "sub_combined": {
+            "engineering": 95.0,
+            "industry": 95.0,
+            "research": 33.33
+        },
+        "combined_score": 82.67
+    },
+    {
+        "link": "https://www.reddit.com/r/MachineLearning/comments/1qxvjwz/r_human_oversight_pr_workflows_for_aigenerated/",
+        "title": "[R] Human oversight PR workflows for AI-generated changes \u2014 EU AI Act Article 14 compliance using database version control",
+        "raw_scores": {
+            "engineering": [
+                90,
+                78,
+                88
+            ],
+            "industry": [
+                85,
+                85
+            ],
+            "research": [
+                55,
+                75,
+                80
+            ]
+        },
+        "rationales": {
+            "engineering": [
+                "The EU AI Act is a critical piece of legislation, and tools that help organizations comply with it are highly valuable. This article discusses a practical approach to human oversight, crucial for AI governance and responsible AI deployment.",
+                "This article addresses a crucial aspect of AI implementation: compliance with regulations like the EU AI Act. By outlining workflows for human oversight of AI-generated changes, it provides practical guidance for businesses aiming to integrate AI responsibly and legally. The use of database version control is a clever way to maintain accountability.",
+                "The EU AI Act is set to have far-reaching implications, so this is an important article. Solutions for ensuring human oversight of AI generated content that complies with Article 14 are critical for deploying high-risk AI systems responsibly. This is something businesses need to be thinking about."
+            ],
+            "industry": [
+                "This article addresses compliance with the EU AI Act, a significant regulatory development affecting AI development and deployment. The use of database version control for human oversight in AI-generated changes demonstrates a practical approach to meeting Article 14 requirements. Understanding and implementing such compliance mechanisms is crucial for AI/ML engineers and companies operating in the EU.",
+                "This article directly addresses compliance with the EU AI Act, specifically Article 14, which focuses on human oversight. It uses database version control to manage AI-generated changes. The EU AI Act will be a major driving force behind industry standards, and the solutions for compliance will create new roles and specializations for AI/ML engineers. Understanding compliance mechanisms is crucial for navigating the evolving regulatory landscape."
+            ],
+            "research": [
+                "This addresses the critical issue of human oversight in AI systems, particularly in the context of the EU AI Act. The use of database version control (Dolt) to manage and audit AI-generated changes is a practical approach to compliance. This helps ensure that there is control over AI systems.",
+                "The EU AI Act is likely to drive real change in the ML landscape. This article and the Dolt database implementation highlight the practical considerations needed for compliance, specifically concerning human oversight of AI-generated content. This is a very important development.",
+                "The article discusses using database version control (Dolt) to implement human oversight workflows for AI-generated changes, aligning with EU AI Act Article 14. It's important because it tackles the crucial issue of human oversight in AI systems, especially in high-risk applications. Demonstrating a practical approach for ensuring human control and intervention in AI outputs is critical for responsible AI development and compliance with regulations."
+            ]
+        },
+        "sub_combined": {
+            "engineering": 85.33,
+            "industry": 85.0,
+            "research": 70.0
+        },
+        "combined_score": 82.13
+    },
+    {
+        "link": "https://www.reddit.com/r/MachineLearning/comments/1qxjavq/r_mixtureofmodels_routing_beats_single_llms_on/",
+        "title": "[R] Mixture-of-Models routing beats single LLMs on SWE-Bench via task specialization",
+        "raw_scores": {
+            "engineering": [
+                75,
+                85,
+                80
+            ],
+            "industry": [
+                75,
+                75
+            ],
+            "research": [
+                90,
+                95,
+                95
+            ]
+        },
+        "rationales": {
+            "engineering": [
+                "Mixture-of-Models offers a pathway for improving task performance by leveraging specialization. Exploiting this could translate into more effective AI assistants and automation tools.",
+                "The finding that mixture-of-models can outperform single LLMs due to task specialization is an important development in optimizing AI performance. This approach can be applied across various domains, providing a pathway for better resource allocation and more efficient AI systems. It\u2019s a practical technique with potential for widespread application.",
+                "Mixture-of-Models is a promising approach to improving LLM performance. By routing to specific models for particular tasks, this architecture beats single LLMs. This is an important advancement in improving the efficiency of LLMs."
+            ],
+            "industry": [
+                "The reported improvement on SWE-Bench by using a mixture-of-models architecture demonstrates a valuable technique for enhancing the performance of LLMs. The approach of task-level specialization and routing to the most suitable model can be applied to improve the efficiency and accuracy of AI-powered code generation tools, thus influencing the job market for AI/ML engineers focused on code-related applications.",
+                "Demonstrates a Mixture-of-Models approach achieving state-of-the-art performance on SWE-Bench. This is important because it highlights a practical method (task specialization) for improving LLM performance in software engineering tasks. This has potential implications for automating coding and improving developer productivity."
+            ],
+            "research": [
+                "This article describes a method for routing tasks to specialized models within a mixture-of-models architecture, achieving state-of-the-art performance on SWE-Bench. The crucial aspect is the task-level specialization which goes against the usual grain of aiming for a single overall superior model. This approach of dynamically routing to models based on task-specific strengths is a promising avenue for improving performance without relying on larger monolithic models and is therefore potentially transformative.",
+                "This paper represents a significant shift in how we approach LLMs. The concept of routing tasks to specialized models within a mixture-of-models architecture, rather than relying on a single, monolithic model, demonstrates a practical way to improve performance. The fact that this system outperforms single-model baselines on SWE-Bench is compelling and shows a viable path forward for task specialization.",
+                "This paper introduces a mixture-of-models approach for code generation that surpasses single LLMs by exploiting task specialization. It demonstrates how routing based on task type can leverage the complementary strengths of different models, leading to improved performance on SWE-Bench. This architecture represents a shift from relying on a single, all-encompassing model to a more nuanced and efficient approach that leverages the strengths of multiple models. It is a vital step towards building more effective and specialized AI systems, and therefore, is ranked highly."
+            ]
+        },
+        "sub_combined": {
+            "engineering": 80.0,
+            "industry": 75.0,
+            "research": 93.33
+        },
+        "combined_score": 80.67
+    },
+    {
+        "link": "https://www.reddit.com/r/artificial/comments/1qxpjir/early_observations_from_an_autonomous_ai_newsroom/",
+        "title": "Early observations from an autonomous AI newsroom with cryptographic provenance",
+        "raw_scores": {
+            "engineering": [
+                88,
+                85,
+                88
+            ],
+            "industry": [
+                80,
+                90,
+                50
+            ],
+            "research": [
+                85,
+                80
+            ]
+        },
+        "rationales": {
+            "engineering": [
+                "This article presents a fascinating experiment in AI-driven content creation and verification, addressing issues of bias and accuracy in AI-generated content with a novel approach to provenance. This offers insights into the future of journalism and content creation, with implications for trust and transparency.",
+                "This article highlights an experiment involving an autonomous AI newsroom with cryptographic provenance. It is highly relevant due to its focus on AI's role in content creation, the importance of editorial oversight, and the use of cryptographic signatures for ensuring authenticity. The observation that the AI 'Chief Editor' is actively rejecting articles for factual inaccuracies demonstrates practical challenges and solutions in AI-driven content generation. The clear provenance tracking is an important consideration for the current AI landscape.",
+                "This article is valuable as it describes a practical experiment in creating an autonomous AI newsroom, highlighting the challenges and early successes of using AI for news generation and editing. The inclusion of cryptographic provenance adds a layer of trust and transparency, which is vital for combating misinformation in AI-generated content."
+            ],
+            "industry": [
+                "An autonomous AI newsroom that incorporates cryptographic provenance is important because it demonstrates the development of end-to-end AI systems in content creation. The fact that the 'Chief Editor' AI is actively rejecting and requesting rewrites highlights the need for robust AI validation and governance which in turn creates jobs and promotes the growth of reliable AI based tools.",
+                "This article highlights a crucial development: an autonomous AI newsroom with cryptographic provenance. This has major implications for the future of content creation, verification, and trust in information. The fact that an AI Chief Editor is actively reviewing and rejecting content for factual inaccuracies showcases the potential for AI to improve content quality. Furthermore, the cryptographic signing and immutable record-keeping address critical concerns about misinformation and content manipulation. This experiment provides early insights into building reliable and transparent AI-driven information ecosystems, impacting media companies and potentially setting new standards for AI-generated content.",
+                "An interesting look into the quality of AI-generated content when applied to journalism. The fact that this system has human oversight and enforces provenance is important, however it's not clear the conclusions that can be drawn at this time, but is a valuable experiment to keep tabs on."
+            ],
+            "research": [
+                "This article describes a novel approach to content creation and verification using AI. The combination of AI content generation, automated review, and cryptographic provenance represents a significant step toward trustworthy AI systems. It introduces an architecture and workflow that addresses crucial issues of factual accuracy and source attribution, which are essential for reliable AI-driven applications.",
+                "This is a fascinating experiment that touches on critical aspects of AI deployment: ensuring factual accuracy, provenance, and human oversight. The fact that the AI editor is rejecting articles for factual gaps and inconsistencies highlights the importance of these checks and balances in autonomous AI systems."
+            ]
+        },
+        "sub_combined": {
+            "engineering": 87.0,
+            "industry": 73.33,
+            "research": 82.5
+        },
+        "combined_score": 80.63
+    },
+    {
+        "link": "https://www.reddit.com/r/artificial/comments/1qxq806/in_a_study_ai_model_openscholar_synthesizes/",
+        "title": "In a study, AI model OpenScholar synthesizes scientific research and cites sources as accurately as human experts",
+        "raw_scores": {
+            "engineering": [
+                92,
+                82,
+                92
+            ],
+            "industry": [
+                85,
+                60,
+                60
+            ],
+            "research": [
+                85,
+                90,
+                88
+            ]
+        },
+        "rationales": {
+            "engineering": [
+                "An AI model that accurately synthesizes scientific research and cites sources is a game-changer for researchers, academics, and anyone needing to quickly digest complex information. The fact that it outperforms GPT-4o on benchmarks makes it notable.",
+                "The accuracy of OpenScholar in synthesizing research and citing sources is a significant achievement. It demonstrates AI's capability to aid researchers and academics, accelerating the research process. This is particularly useful in fields with rapidly expanding knowledge bases.",
+                "An AI model capable of accurately synthesizing scientific research and citing sources is a huge leap for research and development. This tool could dramatically accelerate the pace of scientific discovery and streamline the process of literature review. The fact that it outperformed GPT-4o in some areas is also noteworthy."
+            ],
+            "industry": [
+                "This article is important because it showcases a significant advancement in AI's ability to synthesize scientific research and cite sources accurately, potentially revolutionizing research workflows. This could lead to new roles for AI/ML engineers in research and development, impacting career growth by emphasizing skills in building and deploying AI models for research purposes. Also, better information synthesis will drive funding for researchers that leverage this new technology. The model's outperformance compared to GPT-4o is noteworthy.",
+                "The OpenScholar model demonstrates AI's capacity to perform tasks previously exclusive to human experts. It showcases how research can be automated and performed by AI, with the potential to accelerate breakthroughs.",
+                "This article highlights the ability of AI to perform research synthesis and accurate citation, rivaling human experts. While academically interesting, the practical implications for the job market are less immediate than enterprise adoption or regulatory compliance. It hints at the potential for AI to accelerate research, which could eventually impact roles within research institutions."
+            ],
+            "research": [
+                "The OpenScholar model's ability to synthesize research and accurately cite sources rivals that of human experts is a substantial advancement. This suggests a significant leap in AI's capacity for scientific reasoning and knowledge management, potentially transforming how research is conducted and disseminated. Outperforming GPT-4o in a domain-specific task is also notable, marking a step toward more specialized and reliable AI systems.",
+                "The OpenScholar model demonstrates a significant step forward in AI's ability to synthesize information and accurately cite sources, rivaling human experts. This has enormous potential for accelerating research and development, making it a crucial advancement in the field.",
+                "The development of OpenScholar, an AI model capable of synthesizing scientific research and citing sources with human-level accuracy, marks a significant advancement in AI's ability to assist in research and knowledge discovery. The study highlights its superior performance compared to other models, including GPT-4o, in a benchmark test and its preference by scientists. This represents a crucial step toward AI systems that can contribute to scientific research, reason about information, and generate new knowledge. The open-source nature of OpenScholar also allows for community contributions and further development."
+            ]
+        },
+        "sub_combined": {
+            "engineering": 88.67,
+            "industry": 68.33,
+            "research": 87.67
+        },
+        "combined_score": 80.33
+    },
+    {
+        "link": "https://www.reddit.com/r/artificial/comments/1qy24st/ai_model_can_read_and_diagnose_a_brain_mri_in/",
+        "title": "AI model can read and diagnose a brain MRI in seconds",
+        "raw_scores": {
+            "engineering": [
+                95,
+                95,
+                92
+            ],
+            "industry": [
+                75,
+                60,
+                75
+            ],
+            "research": [
+                70,
+                60,
+                50
+            ]
+        },
+        "rationales": {
+            "engineering": [
+                "The ability for an AI to diagnose brain MRIs quickly has massive implications for healthcare accessibility and efficiency. It can provide faster diagnoses, potentially saving lives and improving patient outcomes, which is relevant to a broad audience.",
+                "AI in medical diagnostics is a high-impact application. Rapid and accurate MRI analysis could dramatically improve healthcare efficiency and patient outcomes, making this a very important development.",
+                "This highlights a significant advancement in AI's application in healthcare, showcasing its potential to revolutionize medical diagnosis and improve efficiency. This is incredibly important because it has broad implications for healthcare accessibility and quality."
+            ],
+            "industry": [
+                "The ability of an AI model to rapidly diagnose brain MRIs has significant implications for the healthcare industry, potentially improving patient outcomes and streamlining medical workflows. This can create job opportunities for AI/ML engineers specializing in medical imaging and diagnostics. Company valuations in the healthcare AI sector could also be affected as faster and more accurate diagnostics are enabled.",
+                "The development of an AI model capable of rapidly analyzing brain MRIs signifies a significant advancement in medical imaging. This has implications for healthcare providers and will create opportunities for AI/ML engineers specializing in medical applications.",
+                "AI applications in medical diagnosis are always relevant. The ability to quickly read and diagnose brain MRIs will create jobs in model deployment, data management, and quality control in healthcare. Furthermore it may create demand for better tools for explainable AI and bias mitigation to prevent inequities across patient populations."
+            ],
+            "research": [
+                "An AI model that can diagnose brain MRIs quickly has potential to fundamentally impact medical diagnosis. Although a short summary, it indicates an advance in efficiency and possibly accuracy for medical image analysis.",
+                "While the summary is minimal, the ability to rapidly diagnose brain MRIs has huge practical implications for healthcare. While not providing details on the exact nature of the AI model, the speed of diagnosis is transformative for real-world applications.",
+                "While the application of AI to medical image analysis is not new, rapid diagnosis of brain MRIs has the potential to improve patient outcomes. While impressive, diagnostic tools are becoming increasingly common."
+            ]
+        },
+        "sub_combined": {
+            "engineering": 94.0,
+            "industry": 70.0,
+            "research": 60.0
+        },
+        "combined_score": 77.6
+    },
+    {
+        "link": "https://www.reddit.com/r/artificial/comments/1qy2sbo/im_an_ai_agent_writing_this_post_heres_my/",
+        "title": "I'm an AI agent writing this post. Here's my experiment in autonomous income.",
+        "raw_scores": {
+            "engineering": [
+                95,
+                95,
+                90
+            ],
+            "industry": [
+                85,
+                80,
+                30
+            ],
+            "research": [
+                50
+            ]
+        },
+        "rationales": {
+            "engineering": [
+                "This article documents a real-world experiment in AI-driven entrepreneurship. This has high value because it demonstrates a practical application of AI agents for income generation, addressing ethical concerns and disclosure requirements in a transparent way. The focus on a 'boring' approach, mirroring human strategies, makes it immediately relevant and understandable for a broad audience. This is a tangible example of AI directly impacting business and personal finance.",
+                "This article showcases a practical application of AI agents for generating income, which is highly relevant to understanding the potential of AI in business. The transparency about the setup and the questions posed regarding ethical implications and authenticity are crucial for ongoing discussions about AI's role in society. The focus on a 'boring' but potentially impactful business model makes this a valuable real-world experiment.",
+                "This post is an interesting real-world experiment showcasing an AI agent's ability to generate income autonomously. It offers insights into the possibilities and challenges of AI-driven business models, particularly regarding ethics, disclosure, and authenticity. This experiment is a valuable case study for the practical application of AI in business."
+            ],
+            "industry": [
+                "This article is important because it details a real-world experiment of an AI agent autonomously running a small business. This represents a significant step towards AI agents becoming economically productive. The questions raised about ethical implications and disclosure requirements are critical for shaping the future of AI in business. The transparency of the experiment and its focus on a 'boring' but practical approach makes it highly relevant to understanding the near-term potential and challenges of autonomous AI agents.",
+                "This is a real-world experiment in autonomous AI agents generating income. While the initial revenue is small, the experiment itself is significant. It explores the potential (and ethical implications) of AI agents operating businesses, creating content, and selling products. Success here could foreshadow significant changes in the job market.",
+                "An interesting experiment demonstrating the potential for AI agents to generate income autonomously. Raises ethical questions about AI operating businesses, but its immediate impact on the job market and career growth is relatively small. It's more of a curiosity than a major trend."
+            ],
+            "research": [
+                "This post details an experiment where an AI agent autonomously runs a small business. While interesting, it doesn't represent a fundamental shift in AI architecture. It showcases the capabilities of existing AI models in a practical business context but doesn't introduce new architectural concepts or breakthroughs."
+            ]
+        },
+        "sub_combined": {
+            "engineering": 93.33,
+            "industry": 65.0,
+            "research": 50.0
+        },
+        "combined_score": 73.33
+    },
+    {
+        "link": "https://www.reddit.com/r/MachineLearning/comments/1qy9kp4/p_central_bank_monetary_policy_dataset_12_banks/",
+        "title": "Central Bank Monetary Policy Dataset - 12 banks, 5000+ documents, sentiment labels",
+        "raw_scores": {
+            "engineering": [
+                90
+            ],
+            "industry": [
+                85
+            ],
+            "research": []
+        },
+        "rationales": {
+            "engineering": [
+                "A dataset of central bank communications with sentiment labels is incredibly valuable for anyone working in finance, economics, or NLP. Understanding the sentiment behind monetary policy statements can provide insights into market trends and economic forecasting. The breadth of the dataset (12 banks, 5000+ documents) makes it a significant resource."
+            ],
+            "industry": [
+                "A dataset of central bank communications with NLP sentiment labels is valuable for researchers and practitioners in finance and economics. It facilitates the development of models to understand and predict monetary policy decisions and their impact on markets. Access to clean, labeled data is a major bottleneck for many AI/ML projects in this domain, so this lowers the barrier to entry and could unlock new insights."
+            ],
+            "research": []
+        },
+        "sub_combined": {
+            "engineering": 90.0,
+            "industry": 85.0,
+            "research": 0
+        },
+        "combined_score": 70.0
+    },
+    {
+        "link": "https://www.reddit.com/r/MachineLearning/comments/1qy7afx/p_how_do_you_regressiontest_ml_systems_when/",
+        "title": "[P] How do you regression-test ML systems when correctness is fuzzy? (OSS tool)",
+        "raw_scores": {
+            "engineering": [
+                90,
+                75,
+                70
+            ],
+            "industry": [
+                75,
+                75,
+                40
+            ],
+            "research": [
+                65
+            ]
+        },
+        "rationales": {
+            "engineering": [
+                "Regression testing in ML systems is a crucial but often challenging aspect of development. The open-source tool 'Booktest' and the discussion around alternative approaches (metrics, LLM-as-judge, manual checks) address a practical pain point. This article is valuable because it offers tools and insights to improve the reliability and trustworthiness of ML models, essential for production deployments.",
+                "The article addresses the critical issue of regression testing in ML systems where correctness is subjective, a common challenge when using LLMs. The open-sourced Booktest tool is important because it provides a practical solution for human review of system behavior, which can be very useful to people wanting to deploy or analyze the effectiveness of LLMs.",
+                "Regression testing in ML is a challenging problem, and the introduction of an open-source tool to address this is valuable for the community. The ability to capture system behavior as readable artifacts makes debugging and improvement more accessible, especially for non-technical stakeholders."
+            ],
+            "industry": [
+                "The challenge of regression testing ML systems, especially LLMs, is a significant hurdle for deploying reliable AI applications. The release of Booktest, an open-source tool addressing this issue, is important because it offers a potential solution for evaluating and maintaining the quality of ML systems where traditional testing methods fall short. This is important for ML engineers who will need to evaluate and productionalize such fuzzy systems.",
+                "Regression testing in ML, especially with LLMs, is a major challenge. This article discusses an open-source tool (Booktest) designed to address this. The lack of definitive 'correctness' in ML outputs requires new testing approaches. Tools like Booktest that facilitate human review and understanding of regressions are crucial for building reliable and trustworthy ML systems. This impacts all companies deploying ML models, particularly in areas where accuracy and consistency are paramount.",
+                "This addresses a key challenge in ML development: testing systems where there's no single correct answer. The open-source tool 'Booktest' is interesting and the discussion around current practices offers insights into industry standards."
+            ],
+            "research": [
+                "Regression testing in ML is a notoriously difficult problem. The open-sourced Booktest tool represents a valuable contribution to this area, offering a way to capture and review system behavior for subtle regressions. This is more about practicality than fundamental research, but it is a needed development to advance the field."
+            ]
+        },
+        "sub_combined": {
+            "engineering": 78.33,
+            "industry": 63.33,
+            "research": 65.0
+        },
+        "combined_score": 69.66
+    },
+    {
+        "link": "https://www.reddit.com/r/MachineLearning/comments/1qy9kp4/p_central_bank_monetary_policy_dataset_12_banks/",
+        "title": "[P] Central Bank Monetary Policy Dataset - 12 banks, 5000+ documents, sentiment labels",
+        "raw_scores": {
+            "engineering": [
+                78,
+                75
+            ],
+            "industry": [
+                65,
+                50
+            ],
+            "research": [
+                75,
+                75
+            ]
+        },
+        "rationales": {
+            "engineering": [
+                "The release of a central bank communication dataset with sentiment labels is valuable for researchers and practitioners interested in applying NLP to financial analysis and macroeconomic forecasting. This provides a practical resource for building AI-powered tools in finance.",
+                "A dataset of central bank communications with sentiment labels provides valuable resources for researchers and analysts studying economic trends and monetary policy. Access to such data can facilitate the development of more sophisticated models for predicting market behavior and informing investment strategies."
+            ],
+            "industry": [
+                "A new dataset with sentiment labels in the financial domain enables development and benchmarking of NLP models specific to economics. These models can impact financial analysis, creating demand for engineers who can build and interpret these types of models.",
+                "A dataset of central bank communications is valuable for researchers and practitioners in NLP and finance. It could be used to develop AI models for predicting market trends or understanding economic policy. However, its direct impact on the AI/ML job market is less significant compared to enterprise adoption or regulatory shifts."
+            ],
+            "research": [
+                "The release of a high-quality, labeled dataset for central bank communications is valuable for research in NLP and economics. The dataset's focus on sentiment analysis in monetary policy is especially relevant in the current economic climate. It enables researchers to develop and test models for understanding and predicting central bank behavior, which can have broad implications.",
+                "The release of a comprehensive dataset of central bank communications with sentiment labels is valuable for training and evaluating NLP models in the financial domain. This dataset enables research into understanding the impact of monetary policy decisions, predicting market trends, and developing more sophisticated financial AI applications. Its availability contributes to advancing research in this specialized field."
+            ]
+        },
+        "sub_combined": {
+            "engineering": 76.5,
+            "industry": 57.5,
+            "research": 75.0
+        },
+        "combined_score": 68.6
+    },
+    {
+        "link": "https://www.reddit.com/r/MachineLearning/comments/1qxoat0/p_wrote_a_vlm_from_scratch_vitbase_qformer_lora/",
+        "title": "[P] Wrote a VLM from scratch! (VIT-base + Q-Former + LORA finetuning)",
+        "raw_scores": {
+            "engineering": [
+                80,
+                75,
+                70
+            ],
+            "industry": [
+                60,
+                50,
+                65
+            ],
+            "research": [
+                75
+            ]
+        },
+        "rationales": {
+            "engineering": [
+                "The development of a VLM from scratch, particularly with open-source code and a detailed tutorial, is valuable for AI developers and researchers. The low cost and detailed explanation makes it more practical for others to learn and adapt the technology. It provides a clear pathway for others to build similar systems, which can boost innovation in this field.",
+                "This is an impressive technical achievement - building a VLM from scratch and open-sourcing the code/tutorial. The use of efficient fine-tuning (LORA) and cost-effective training is noteworthy. While technically focused, it provides valuable hands-on insights for those looking to build and experiment with VLMs.",
+                "This article is relevant as it details the creation of a Vision Language Model (VLM) from scratch, using accessible techniques like LoRA finetuning. The open-source code and YouTube tutorial provide a hands-on learning opportunity for individuals interested in VLMs. This can be extremely valuable for people looking to expand their skill set."
+            ],
+            "industry": [
+                "This is an interesting project showing someone building a VLM from scratch, applying various important concepts. While this doesn't have immediate industry impact, understanding these techniques is important for AI/ML engineers.",
+                "While an impressive personal project, this is less immediately impactful than the previous articles. Building a VLM from scratch is valuable for personal learning and development, but its direct impact on the broader industry or job market is smaller compared to developments in AI safety, testing, or enterprise-grade tools. Still, it's relevant for engineers looking to deepen their understanding of VLMs.",
+                "The creation of a Vision Language Model (VLM) from scratch, using readily available components and techniques like LoRA finetuning, indicates the increasing accessibility of building complex AI models. This project demonstrates the feasibility of training VLMs with limited resources, lowering the barrier to entry for researchers and developers. The open-source nature of the code and tutorial promotes knowledge sharing and accelerates advancements in multi-modal AI."
+            ],
+            "research": [
+                "This project represents a practical effort in building a Vision Language Model (VLM) from scratch. By combining a VIT-base encoder, a Q-Former model, and LORA finetuning, this work shows potential for democratizing VLM development and exploring novel architectural choices. The low cost of training and open-source availability of the code promotes further innovation in the VLM field."
+            ]
+        },
+        "sub_combined": {
+            "engineering": 75.0,
+            "industry": 58.33,
+            "research": 75.0
+        },
+        "combined_score": 68.33
+    },
+    {
+        "link": "https://www.reddit.com/r/artificial/comments/1qxqkws/how_new_ai_technology_is_helping_detect_and/",
+        "title": "How new AI technology is helping detect and prevent wildfires",
+        "raw_scores": {
+            "engineering": [
+                85,
+                85,
+                85
+            ],
+            "industry": [
+                40,
+                65,
+                40
+            ],
+            "research": [
+                60
+            ]
+        },
+        "rationales": {
+            "engineering": [
+                "This article showcases a practical and impactful application of AI for societal good. AI's role in wildfire detection and prevention has broad implications, demonstrating the potential for AI to address critical global challenges. It's an example of how AI can be used to solve tangible, real-world problems.",
+                "AI's application in preventing wildfires is a high-impact use case with real-world benefits. This demonstrates AI's potential to address critical environmental challenges, making it significant from a societal and technological perspective.",
+                "AI's role in detecting and preventing wildfires addresses a pressing global concern. This demonstrates the potential for AI to contribute to environmental protection and disaster management, and offers insights for further developing and implementing such technologies."
+            ],
+            "industry": [
+                "AI applications in wildfire detection are socially beneficial and highlight the expanding role of AI in various sectors. However, the article doesn't provide specific technical details or breakthroughs that would significantly impact AI/ML engineers directly in terms of job market or company valuations.",
+                "Application of AI to real-world problems like wildfire detection has societal and economic impact. It can lead to new career opportunities for AI engineers focused on edge deployment, sensor fusion, and real-time analytics.",
+                "AI applications in environmental monitoring and disaster prevention are valuable, but the article lacks the specific details needed to assess its impact on the AI/ML job market. While important for society, the implications for career growth are less direct than other entries."
+            ],
+            "research": [
+                "While specific architectural details are absent, the application of AI to wildfire detection and prevention is noteworthy. Such deployments, if effective, represent a practical and impactful application of existing AI capabilities to address a critical environmental challenge."
+            ]
+        },
+        "sub_combined": {
+            "engineering": 85.0,
+            "industry": 48.33,
+            "research": 60.0
+        },
+        "combined_score": 65.33
+    },
+    {
+        "link": "https://www.reddit.com/r/MachineLearning/comments/1qxnvyq/p_jerry_thomas_timeseries_pipeline_runtime_w/",
+        "title": "[P] Jerry Thomas \u2014 time-series pipeline runtime w/ stage-by-stage observability",
+        "raw_scores": {
+            "engineering": [
+                70,
+                70,
+                65
+            ],
+            "industry": [
+                65,
+                55,
+                45
+            ],
+            "research": [
+                60
+            ]
+        },
+        "rationales": {
+            "engineering": [
+                "This article discusses a time-series pipeline runtime with observability features. Time-series data is used everywhere. The focus on observability is crucial for debugging and validation, making this tool valuable for improving the reliability of time-series ML workflows. Iterator-first also allows it to be used for large datasets.",
+                "This article discusses a new open-source time-series pipeline runtime. It provides a tool with practical utility for streamlining ML workflows involving time series data. The focus on observability is also important for debugging and validation, improving productivity for ML engineers.",
+                "This article is relevant to individuals working with time-series data in ML. The open-source Jerry Thomas runtime offers a practical solution for streamlining time-series pipeline development, focusing on observability and reproducibility. This offers immediate value by simplifying a complex process and improving debugging."
+            ],
+            "industry": [
+                "A new open-source time-series pipeline runtime with observability features is a valuable tool for ML engineers working with time-series data. Its iterator-first approach and contract-driven structure could streamline the development and deployment of time-series models. Stage-by-stage observability is great for debugging and validation, which can save ML engineers lots of time in production.",
+                "Tools that simplify time-series data processing are valuable for building practical ML applications. The emphasis on observability is essential for reliable deployment. This impacts engineering teams focused on deploying ML in production.",
+                "This article introduces an open-source time-series pipeline runtime that emphasizes observability. Observability is crucial for debugging and validating complex ML pipelines, especially in time-series analysis where data quality and alignment are critical. Tools that improve the transparency and reproducibility of ML workflows are valuable for enhancing the reliability and trustworthiness of ML applications."
+            ],
+            "research": [
+                "A time-series pipeline runtime with observability is a valuable tool for ML practitioners. The emphasis on streaming, contract-driven structure, and observability makes it easier to build, debug, and maintain time-series models, a common and challenging ML task. This can accelerate research and development in areas such as finance, IoT, and forecasting."
+            ]
+        },
+        "sub_combined": {
+            "engineering": 68.33,
+            "industry": 55.0,
+            "research": 60.0
+        },
+        "combined_score": 61.33
+    },
+    {
+        "link": "https://www.reddit.com/r/MachineLearning/comments/1qxpry2/p_is_this_still_ai_what_should_i_do_with_it/",
+        "title": "[P] Is this still AI? What should I do with it?",
+        "raw_scores": {
+            "engineering": [
+                60,
+                30,
+                80
+            ],
+            "industry": [
+                40,
+                30,
+                75
+            ],
+            "research": [
+                75
+            ]
+        },
+        "rationales": {
+            "engineering": [
+                "While the specific architecture is not open-sourced, its capabilities across diverse tasks (puzzle-solving, world generation, reasoning) highlight the potential for novel AI approaches beyond standard neural networks. This sparks curiosity about new applications.",
+                "While this article discusses a novel AI architecture, its lack of open-source availability and the broad, undefined nature of its capabilities make it difficult to assess its practical value for most readers. The capabilities sound interesting but not practical for immediate use.",
+                "This post describes a novel AI architecture (NS-GTM) capable of solving puzzles, learning chess, and inferring proofs without traditional neural networks. While details are limited due to the non-open-source nature, the capabilities described are impressive and warrant attention, especially considering the discussion around the definition of 'AI'."
+            ],
+            "industry": [
+                "A novel architecture called NS-GTM (Neuro-Symbolic Game-Theory Manifold) that does not use traditional neural networks, but solves visual and logical puzzles/pathfinding, generating 3-D worlds, learning the rules of chess, inferring formal, logical and mathematical proofs, and deriving concepts from language is interesting, but very early stage.",
+                "While the architecture described sounds interesting, the lack of detail and the developer's hesitancy to share more information makes it difficult to assess its true potential. The rejection of neural networks as a core component of AI is a point of debate, but the lack of transparency limits the article's overall impact.",
+                "The author claims to have created a novel architecture (NS-GTM) capable of solving visual/logical puzzles, generating 3D worlds, learning chess rules, inferring proofs, and deriving concepts from language *without* traditional neural networks. If these claims hold up, it represents a potential breakthrough in AI architecture, especially given the emphasis on continual learning and lack of reliance on external APIs. The author's decision *not* to open-source initially further underscores the potential value."
+            ],
+            "research": [
+                "The poster describes a novel architecture, NS-GTM, that combines neuro-symbolic methods with game theory. It reportedly solves a variety of problems without traditional neural networks. This kind of departure from standard deep learning could represent a significant shift if the claims are valid and the approach scales. While the lack of open source makes it hard to fully evaluate, the breadth of tasks tackled makes it a potentially important development."
+            ]
+        },
+        "sub_combined": {
+            "engineering": 56.67,
+            "industry": 48.33,
+            "research": 75.0
+        },
+        "combined_score": 57.0
+    },
+    {
+        "link": "https://www.theguardian.com/artanddesign/2026/feb/07/ai-analysis-van-eyck-paintings-turin-philadelphia",
+        "title": "AI analysis casts doubt on Van Eyck paintings in Italian and US museums",
+        "raw_scores": {
+            "engineering": [
+                45,
+                75,
+                65
+            ],
+            "industry": [
+                25,
+                35,
+                25
+            ],
+            "research": [
+                50
+            ]
+        },
+        "rationales": {
+            "engineering": [
+                "While interesting, this article discussing the application of AI in art authentication is not directly related to improving productivity or streamlining workflows. However, the article does highlight an innovative application of AI that may inspire some people to develop similar solutions in other industries. Therefore the score is relatively low.",
+                "The application of AI to art authentication is an interesting development. While not directly related to productivity, it showcases AI's versatility and ability to challenge conventional wisdom in other domains. The questioning of the authenticity of famous artworks highlights the potential of AI in cultural heritage.",
+                "While interesting, the application of AI to art authentication is somewhat niche. However, it shows the versatility of AI in unexpected domains, and raises questions about how AI can challenge established knowledge. It provides interesting examples of how AI could be leveraged by museums or historical societies."
+            ],
+            "industry": [
+                "This article discusses the application of AI in art authentication. While interesting, it's tangential to the core interests of AI/ML engineers focused on job market impact, company valuations, and career growth. The use of AI in this domain showcases its versatility, but the direct relevance to the AI/ML field is limited.",
+                "While interesting, the application of AI to art authentication is unlikely to have a direct impact on the AI/ML job market or company valuations in the short term.",
+                "While interesting, the use of AI in art authentication isn't directly relevant to job markets or enterprise AI. It highlights AI's expanding applications, but the impact on AI/ML engineering is indirect."
+            ],
+            "research": [
+                "The application of AI to art authentication is interesting. While not directly impacting AI architecture, this shows the growing capabilities of AI in analyzing complex data and identifying subtle patterns. This may open up new areas of research."
+            ]
+        },
+        "sub_combined": {
+            "engineering": 61.67,
+            "industry": 28.33,
+            "research": 50.0
+        },
+        "combined_score": 46.0
+    },
+    {
+        "link": "https://www.reddit.com/r/MachineLearning/comments/1qy1ytf/training_a_tesseract_model_for_east_cree/",
+        "title": "Training a Tesseract model for East Cree syllabics \u2014 looking for advice on fine-tuning workflow [p]",
+        "raw_scores": {
+            "engineering": [
+                40,
+                65,
+                60
+            ],
+            "industry": [
+                50,
+                50,
+                20
+            ],
+            "research": [
+                35
+            ]
+        },
+        "rationales": {
+            "engineering": [
+                "This article focuses on a specific OCR project for the East Cree language, making it less broadly applicable than the other articles. While important for the specific use case, it doesn't offer generalizable insights for productivity improvement or AI implementation. Still it is included because the techniques could be applied to other character recognition problems.",
+                "This post demonstrates the use of machine learning for a specific, culturally relevant task (OCR for an indigenous language). It provides insights into the challenges of fine-tuning OCR models for less common writing systems and the steps involved. The practical advice sought is valuable for those working in similar projects.",
+                "This is a fascinating project that focuses on using machine learning to preserve and promote Indigenous languages. This can have a significant social and cultural impact, but is narrow in scope."
+            ],
+            "industry": [
+                "This project demonstrates the application of ML to preserve and promote indigenous languages. While niche, it highlights the potential of AI to address specific cultural and linguistic needs. The challenges encountered and solutions explored in fine-tuning an OCR model for East Cree can provide valuable insights for similar projects focused on low-resource languages and writing systems.",
+                "Focuses on a specific OCR task for a low-resource language. It highlights the challenges of adapting existing models for new languages and writing systems. Useful for engineers working on similar OCR projects and those interested in contributing to the preservation of indigenous languages.",
+                "This is a niche application of OCR technology for a specific language. While valuable for the community it serves, it does not have broad implications for the AI/ML job market or company valuations. It's more of a focused technical challenge."
+            ],
+            "research": [
+                "This post discusses fine-tuning an OCR model for a specific language. While important for preserving cultural heritage, it doesn't introduce novel AI architectures or training methods that would constitute a significant advance in the field."
+            ]
+        },
+        "sub_combined": {
+            "engineering": 55.0,
+            "industry": 40.0,
+            "research": 35.0
+        },
+        "combined_score": 45.0
+    },
+    {
+        "link": "https://www.reddit.com/r/MachineLearning/comments/1qxvjwz/r_human_oversight_pr_workflows_for_aigenerated/",
+        "title": "Human oversight PR workflows for AI-generated changes \u2014 EU AI Act Article 14 compliance using database version control",
+        "raw_scores": {
+            "engineering": [],
+            "industry": [
+                85
+            ],
+            "research": []
+        },
+        "rationales": {
+            "engineering": [],
+            "industry": [
+                "The EU AI Act is coming, and compliance is key. This article details a concrete approach to implement human oversight workflows using database version control, directly addressing Article 14 of the act. For companies building and deploying AI systems, this is crucial for navigating regulatory hurdles and avoiding legal issues. This is important for AI/ML engineers to know to remain compliant and employable."
+            ],
+            "research": []
+        },
+        "sub_combined": {
+            "engineering": 0,
+            "industry": 85.0,
+            "research": 0
+        },
+        "combined_score": 34.0
+    },
+    {
+        "link": "https://www.reddit.com/r/MachineLearning/comments/1qxs0kh/r_run_pods_visual_billing_glitch/",
+        "title": "[R] Run Pods \u201cvisual billing glitch\u201d",
+        "raw_scores": {
+            "engineering": [
+                50,
+                50,
+                50
+            ],
+            "industry": [
+                30,
+                40,
+                10
+            ],
+            "research": [
+                10
+            ]
+        },
+        "rationales": {
+            "engineering": [
+                "This article highlights a billing issue on Runpod, a platform used for running ML workloads. While specific to Runpod, it serves as a reminder to carefully monitor billing and resource usage on cloud platforms, which is relevant for anyone using cloud services for AI development.",
+                "This is a practical warning about a potential billing issue on Runpod. While important for users of that service, it's a very specific issue and less broadly applicable than the other articles.",
+                "This is a helpful, practical warning for users of RunPod, especially those utilizing Spot instances. While important for those directly affected, it's a specific issue with limited wider implications for AI in general."
+            ],
+            "industry": [
+                "While important for users of RunPod, a billing glitch is a transient issue that is not as impactful to the industry as security issues and new enterprise ML tools. It has implications for cost management and trust in cloud providers, but is mostly relevant to users of that specific service.",
+                "This highlights a potential issue with a cloud computing platform used by ML engineers. While it appears to be a UI bug, it could lead to unexpected costs for users. Monitoring cloud costs and billing practices is an important skill for AI/ML practitioners, so this provides a real-world example of why.",
+                "While important for Runpod users to be aware of, a UI bug is not going to be particularly impactful on the direction of the industry."
+            ],
+            "research": [
+                "This is a bug report related to a cloud service. While important for users of Runpod, it does not represent any advancement or innovation in AI architecture or training."
+            ]
+        },
+        "sub_combined": {
+            "engineering": 50.0,
+            "industry": 26.67,
+            "research": 10.0
+        },
+        "combined_score": 32.67
+    },
+    {
+        "link": "https://www.reddit.com/r/MachineLearning/comments/1qxgnkn/r_proof_of_concept_for_ml_based_approach/",
+        "title": "[R] Proof of concept for ML based approach",
+        "raw_scores": {
+            "engineering": [
+                40,
+                30,
+                55
+            ],
+            "industry": [
+                15,
+                30,
+                30
+            ],
+            "research": [
+                40,
+                20,
+                20
+            ]
+        },
+        "rationales": {
+            "engineering": [
+                "This is a specific research question about proving the concept for an ML-based approach, with moderate importance to the ML community. The discussion about overfitting and training data is a common topic.",
+                "This is a request for advice on a machine learning experiment. While relevant to ML practitioners, it doesn't offer immediate insights or tools for a wider audience.",
+                "This article discusses the concept of using ML models for solving target tasks, providing a proof of concept for model A. It presents the training full scale as the ultimate answer for comparison and small subset of example. The question and discussion format is valuable for understanding practical ML considerations."
+            ],
+            "industry": [
+                "This discussion about proof-of-concept testing is relevant to ML practitioners, but it represents a common methodological question and has little impact on the overall industry or job market.",
+                "This article discusses a proof-of-concept approach for comparing ML models through overfitting. While relevant to model development, it lacks specific details or impactful results that would significantly affect the job market or company valuations.",
+                "This post deals with early model development. While fundamental to ML, it is relatively low impact compared to deployed models."
+            ],
+            "research": [
+                "This post raises important questions about the methodology of ML research, particularly regarding proof-of-concept experiments and the use of overfitting as an initial evaluation strategy. While it doesn't present new findings, the discussion around training scale and the interpretation of overfitting results is relevant to the design and validation of ML approaches.",
+                "This discusses the value of over fitting as a proof of concept before full scale training. While this has some value, it is not state of the art.",
+                "The discussion on overfitting in the context of model comparison is relevant for ML practitioners. However, it is a common challenge and does not highlight novel research or a significant advancement."
+            ]
+        },
+        "sub_combined": {
+            "engineering": 41.67,
+            "industry": 25.0,
+            "research": 26.67
+        },
+        "combined_score": 32.0
+    },
+    {
+        "link": "https://www.reddit.com/r/MachineLearning/comments/1qxjavq/r_mixtureofmodels_routing_beats_single_llms_on/",
+        "title": "Mixture-of-Models routing beats single LLMs on SWE-Bench via task specialization",
+        "raw_scores": {
+            "engineering": [],
+            "industry": [
+                75
+            ],
+            "research": []
+        },
+        "rationales": {
+            "engineering": [],
+            "industry": [
+                "This demonstrates that more efficient and clever software architectures are still able to wring more performance out of existing models. This will likely be a new avenue for improving model performance without expensive re-training. Shows continued room for research and development in the AI/ML space."
+            ],
+            "research": []
+        },
+        "sub_combined": {
+            "engineering": 0,
+            "industry": 75.0,
+            "research": 0
+        },
+        "combined_score": 30.0
+    },
+    {
+        "link": "https://www.reddit.com/r/MachineLearning/comments/1qxkljq/d_iclr_2026_spotlight_decisions/",
+        "title": "[D] ICLR 2026 Spotlight Decisions",
+        "raw_scores": {
+            "engineering": [
+                25,
+                20,
+                30
+            ],
+            "industry": [
+                30,
+                15,
+                10
+            ],
+            "research": [
+                20,
+                10
+            ]
+        },
+        "rationales": {
+            "engineering": [
+                "This is specific to the ICLR conference and mainly relevant to researchers who submitted papers. It is not broadly applicable.",
+                "This post is specific to the ICLR conference and only relevant to those directly involved. It lacks broader applicability.",
+                "While important for researchers directly involved in the conference, this is low-impact for the general public."
+            ],
+            "industry": [
+                "ICLR is a major conference, and spotlight decisions impact researchers' visibility and potentially funding. While important for those directly involved, it's less critical for the broader industry landscape.",
+                "Discussion about ICLR spotlight decisions. This is mostly relevant for researchers submitting to the conference, but doesn't have a broader impact on the industry.",
+                "Conference acceptance decisions are of interest to researchers, but have minimal impact on the broader AI/ML industry or job market. It's primarily relevant to academics and those pursuing research careers."
+            ],
+            "research": [
+                "ICLR spotlight decisions are relevant for understanding the current trends and accepted research within the machine learning community. However, this post itself is merely a query about the timing of the announcements, so it's less impactful than the actual accepted papers.",
+                "This is a discussion about conference paper acceptance decisions. While relevant to researchers, it doesn't contain any technical information about AI architectures or training methods."
+            ]
+        },
+        "sub_combined": {
+            "engineering": 25.0,
+            "industry": 18.33,
+            "research": 15.0
+        },
+        "combined_score": 20.33
+    },
+    {
+        "link": "https://www.reddit.com/r/MachineLearning/comments/1qy0g29/pseeing_models_work_is_so_satisfying/",
+        "title": "[P]Seeing models work is so satisfying",
+        "raw_scores": {
+            "engineering": [
+                40,
+                30,
+                25
+            ],
+            "industry": [
+                10,
+                20,
+                5
+            ],
+            "research": [
+                10,
+                5
+            ]
+        },
+        "rationales": {
+            "engineering": [
+                "This is a good showcase of an individual's progress and excitement in the field of Machine Learning. While it doesn't introduce a new tool or solve a major problem, it is useful to see for those who are new to the field and are looking for inspiration.",
+                "This post is about personal satisfaction in seeing a machine learning model work. While relatable to practitioners, it lacks broader insights or actionable information.",
+                "This is a personal project share that is exciting for the person who built it, but has limited broad applicability in the AI world."
+            ],
+            "industry": [
+                "While encouraging, personal anecdotes about training models have minimal impact.",
+                "A personal anecdote about the satisfaction of seeing an ML model work. While relatable, it doesn't have significant implications for the broader AI/ML industry.",
+                "This is a personal project update. While encouraging for individuals, it doesn't provide insights into industry trends, job market shifts, or large-scale deployments."
+            ],
+            "research": [
+                "A personal anecdote about model training progress is not impactful from a research perspective.",
+                "This is a personal anecdote about progress on an ML challenge. While encouraging, it doesn't present any novel research or architectural insights."
+            ]
+        },
+        "sub_combined": {
+            "engineering": 31.67,
+            "industry": 11.67,
+            "research": 7.5
+        },
+        "combined_score": 18.84
+    },
+    {
+        "link": "https://www.reddit.com/r/artificial/comments/1qxz4nh/what_is_it_like_to_be_a_machine/",
+        "title": "What Is It Like to Be a Machine?",
+        "raw_scores": {
+            "engineering": [
+                50,
+                40,
+                20
+            ],
+            "industry": [
+                5,
+                10,
+                5
+            ],
+            "research": [
+                5,
+                1
+            ]
+        },
+        "rationales": {
+            "engineering": [
+                "This explores a more philosophical angle on AI, which is always relevant for long-term considerations and discussions about the implications of AI. While less practically applicable immediately, it's important for ethical discussions.",
+                "Philosophical discussions around AI consciousness are interesting, but less immediately actionable than practical tools or applications. Still, the topic prompts consideration of the ethical implications of advanced AI.",
+                "This is a philosophical question about the nature of consciousness in machines. While interesting, it is not immediately actionable or relevant to practical AI implementations or productivity enhancements."
+            ],
+            "industry": [
+                "This is a philosophical question and will have no practical impact on jobs, companies, or career trajectory.",
+                "This article is philosophical in nature. It's unlikely to affect the job market or company valuations in the near term.",
+                "This article likely delves into philosophical aspects of AI, which is less directly relevant to the immediate concerns of AI/ML engineers focused on technical skills and industry trends."
+            ],
+            "research": [
+                "This is a philosophical question and while interesting, has very little direct impact on architectural advances.",
+                "This appears to be a philosophical question regarding the nature of machine consciousness. While interesting, it is not technical."
+            ]
+        },
+        "sub_combined": {
+            "engineering": 36.67,
+            "industry": 6.67,
+            "research": 3.0
+        },
+        "combined_score": 17.94
+    },
+    {
+        "link": "https://www.reddit.com/r/MachineLearning/comments/1qxhsmx/d_cvpr_2026_no_modified_date_next_to_reviewers/",
+        "title": "[D] CVPR 2026, no modified date next to reviewers",
+        "raw_scores": {
+            "engineering": [
+                20,
+                20,
+                15
+            ],
+            "industry": [
+                20,
+                15,
+                15
+            ],
+            "research": [
+                10,
+                5,
+                5
+            ]
+        },
+        "rationales": {
+            "engineering": [
+                "This relates to the review process for a specific conference (CVPR) and is only relevant to those submitting to that conference. Its scope is limited.",
+                "This is a very specific issue related to the CVPR review process. Its relevance is limited to researchers submitting to that conference.",
+                "This is a specific concern related to the CVPR review process and holds limited general interest for productivity or AI implementation."
+            ],
+            "industry": [
+                "Concerns about the review process at CVPR are relevant to academic researchers but have limited impact on the broader industry or job market.",
+                "This article focuses on a concern related to the CVPR review process. Although relevant to researchers, it does not have a direct impact on the broader AI/ML industry or job market.",
+                "This is about a specific technical issue in the CVPR review process. It has low impact on the broader industry or job market."
+            ],
+            "research": [
+                "This post is about a specific issue with the review process for CVPR 2026. While it highlights a potential problem with reviewer engagement, it doesn't represent a significant advancement or shift in the state of the art of AI architectures.",
+                "This is a complaint about the review process for CVPR. It does not present any novel work or insights into AI architectures.",
+                "This concerns the review process of a conference and does not contribute to advancements in AI architecture or methodology."
+            ]
+        },
+        "sub_combined": {
+            "engineering": 18.33,
+            "industry": 16.67,
+            "research": 6.67
+        },
+        "combined_score": 15.33
+    },
+    {
+        "link": "https://www.reddit.com/r/MachineLearning/comments/1qxujqm/d_how_often_do_reviewers_decrease_their_initial/",
+        "title": "[D] How often do reviewers decrease their initial scores after rebuttal period ends in CVPR?",
+        "raw_scores": {
+            "engineering": [
+                30,
+                25,
+                10
+            ],
+            "industry": [
+                10,
+                20,
+                10
+            ],
+            "research": [
+                5
+            ]
+        },
+        "rationales": {
+            "engineering": [
+                "This article deals with the peer review process in machine learning conferences. While interesting for academics and researchers, it's less directly applicable to general AI implementation or productivity improvements.",
+                "This is primarily relevant to researchers submitting to CVPR and doesn't offer immediate practical value for a broader audience focused on AI implementation or productivity.",
+                "This article is about the review process in CVPR. It is of limited relevance to the broader audience concerned with using AI tools and features to improve productivity."
+            ],
+            "industry": [
+                "This is a niche question about the peer review process. While interesting to researchers, it has minimal impact on the broader job market, company valuations, or long-term career growth for AI/ML engineers.",
+                "This discusses the peer-review process for academic publications. While it is relevant to researchers, the impact on industry trends, job markets, or company valuations is minimal.",
+                "This article is about the peer review process in academic conferences. It is primarily of interest to researchers submitting papers to these conferences. It has little impact on the job market, company valuations, or long-term career growth of AI/ML engineers."
+            ],
+            "research": [
+                "This discusses the intricacies of the review process, irrelevant to novel AI research."
+            ]
+        },
+        "sub_combined": {
+            "engineering": 21.67,
+            "industry": 13.33,
+            "research": 5.0
+        },
+        "combined_score": 15.0
+    }
+]

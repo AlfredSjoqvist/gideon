@@ -1,0 +1,22 @@
+name: Daily Pipeline
+on:
+  schedule:
+    - cron: '30 3 * * *'
+    - cron: '30 15 * * *'
+  workflow_dispatch:
+jobs:
+  run-pipeline:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-python@v4
+        with: { python-version: '3.10' }
+      - name: Install dependencies
+        run: pip install requests python-dotenv google-generativeai psycopg2-binary tqdm
+      - name: Execute Pipeline
+        run: python main.py
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
