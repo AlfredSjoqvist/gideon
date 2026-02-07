@@ -32,7 +32,8 @@ def get_last_24h_articles():
                 title, 
                 summary, 
                 published, 
-                source_feed, 
+                source,
+                feed_label, 
                 metadata
             FROM articles 
             WHERE published >= now() - interval '72 hours'

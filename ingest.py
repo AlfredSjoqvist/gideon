@@ -132,7 +132,7 @@ def ingest():
                         """
                         INSERT INTO articles 
                         (link, title, summary, published, source, feed_label, metadata, scraped_at)
-                        VALUES (%s, %s, %s, %s, %s, %s, %s)
+                        VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
                         ON CONFLICT (link) DO NOTHING
                         """,
                         (
@@ -140,7 +140,8 @@ def ingest():
                             title, 
                             clean_summary, 
                             published, 
-                            source_name, 
+                            source_name,
+                            label_name,
                             Json(meta_payload), # Automatically handles JSON serialization
                             datetime.datetime.now()
                         )
