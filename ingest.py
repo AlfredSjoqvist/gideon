@@ -50,7 +50,8 @@ def init_db():
             title TEXT,
             summary TEXT,
             published TIMESTAMP,
-            source_feed TEXT,
+            source TEXT,
+            feed_label TEXT,
             metadata JSONB,
             scraped_at TIMESTAMP
         );
@@ -87,6 +88,7 @@ def ingest():
 
     for feed in RSS_FEEDS:
         source_name = feed["source"]
+        label_name = feed["label"]
         rss_url = feed["link"]
         
         # Respect ArXiv rate limits
@@ -129,7 +131,7 @@ def ingest():
                     cur.execute(
                         """
                         INSERT INTO articles 
-                        (link, title, summary, published, source_feed, metadata, scraped_at)
+                        (link, title, summary, published, source, feed_label, metadata, scraped_at)
                         VALUES (%s, %s, %s, %s, %s, %s, %s)
                         ON CONFLICT (link) DO NOTHING
                         """,

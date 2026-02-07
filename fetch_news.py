@@ -1,58 +1,64 @@
 import os
+import json
 import psycopg2
 from psycopg2.extras import RealDictCursor
+from datetime import datetime
 from dotenv import load_dotenv
 
-# Load DATABASE_URL from your .env file
+# This loads the variables from .env into the environment
 load_dotenv()
-DB_URL = os.getenv("DATABASE_URL")
 
-def get_latest_articles(limit=10):
-    """
-    Connects to Supabase and fetches the most recent articles.
-    """
+# Fetch connection string from environment variables
+DB_URL = os.getenv("DATABASE_URL")
+OUTPUT_FILE = "daily_digest.json"
+
+def get_last_24h_articles():
     if not DB_URL:
-        print("Error: DATABASE_URL not found in environment.")
+        print("Error: DATABASE_URL not set.")
         return
 
+    print(f"--- Fetching articles from the last 24 hours ({datetime.now()}) ---")
+
     try:
-        # We use RealDictCursor so we can access columns by name (e.g., row['title'])
+        # We use RealDictCursor so the results are returned as dictionaries
         conn = psycopg2.connect(DB_URL)
         cur = conn.cursor(cursor_factory=RealDictCursor)
 
-        # Query: Get the newest articles based on published date
+        # SQL Query using Postgres time intervals
+        # This targets the 'published' column we created earlier
         query = """
-            SELECT title, source_feed, published, metadata, link
-            FROM articles
-            ORDER BY published DESC
-            LIMIT %s;
+            SELECT 
+                link, 
+                title, 
+                summary, 
+                published, 
+                source_feed, 
+                metadata
+            FROM articles 
+            WHERE published >= now() - interval '72 hours'
+            ORDER BY published DESC;
         """
-        
-        cur.execute(query, (limit,))
+
+        cur.execute(query)
         rows = cur.fetchall()
 
-        cur.close()
-        conn.close()
-        return rows
+        # Convert datetime objects to strings for JSON serialization
+        for row in rows:
+            if row['published']:
+                row['published'] = row['published'].isoformat()
+
+        # Save to JSON
+        with open(OUTPUT_FILE, "w", encoding="utf-8") as f:
+            json.dump(rows, f, indent=4, ensure_ascii=False)
+
+        print(f"Success! Found {len(rows)} articles.")
+        print(f"Data saved to {OUTPUT_FILE}")
 
     except Exception as e:
-        print(f"Error reading from Supabase: {e}")
-        return []
+        print(f"Database error: {e}")
+    finally:
+        if 'cur' in locals(): cur.close()
+        if 'conn' in locals(): conn.close()
 
 if __name__ == "__main__":
-    articles = get_latest_articles(limit=5)
-    
-    print(f"--- 📡 Latest Intelligence ({len(articles)} items) ---\n")
-    
-    for row in articles:
-        print(f"TITLE: {row['title']}")
-        print(f"SOURCE: {row['source_feed']}")
-        print(f"DATE: {row['published']}")
-        
-        # Accessing the JSONB metadata we created in ingest.py
-        tags = row['metadata'].get('tags', [])
-        if tags:
-            print(f"TAGS: {', '.join(tags)}")
-            
-        print(f"URL: {row['link']}")
-        print("-" * 30)
+    get_last_24h_articles()
