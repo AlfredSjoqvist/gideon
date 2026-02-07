@@ -38,32 +38,32 @@ RSS_FEEDS = [
     {
         "source": "ArXiv",
         "label": "Computation & Language (cs.CL)",
-        "link": "https://export.arxiv.org/api/query?search_query=cat:cs.CL&sortBy=submittedDate&sortOrder=descending&max_results=300"
+        "link": "https://export.arxiv.org/api/query?search_query=cat:cs.CL&sortBy=submittedDate&sortOrder=descending&max_results=100"
     },
     {
         "source": "ArXiv",
         "label": "Computer Vision (cs.CV)",
-        "link": "https://export.arxiv.org/api/query?search_query=cat:cs.CV&sortBy=submittedDate&sortOrder=descending&max_results=300"
+        "link": "https://export.arxiv.org/api/query?search_query=cat:cs.CV&sortBy=submittedDate&sortOrder=descending&max_results=100"
     },
     {
         "source": "ArXiv",
         "label": "Robotics (cs.RO)",
-        "link": "https://export.arxiv.org/api/query?search_query=cat:cs.RO&sortBy=submittedDate&sortOrder=descending&max_results=300"
+        "link": "https://export.arxiv.org/api/query?search_query=cat:cs.RO&sortBy=submittedDate&sortOrder=descending&max_results=100"
     },
     {
         "source": "ArXiv",
         "label": "Stats Machine Learning (stat.ML)",
-        "link": "https://export.arxiv.org/api/query?search_query=cat:stat.ML&sortBy=submittedDate&sortOrder=descending&max_results=300"
+        "link": "https://export.arxiv.org/api/query?search_query=cat:stat.ML&sortBy=submittedDate&sortOrder=descending&max_results=100"
     },
     {
         "source": "ArXiv",
         "label": "Machine Learning (cs.LG)",
-        "link": "https://export.arxiv.org/api/query?search_query=cat:cs.LG&sortBy=submittedDate&sortOrder=descending&max_results=300"
+        "link": "https://export.arxiv.org/api/query?search_query=cat:cs.LG&sortBy=submittedDate&sortOrder=descending&max_results=100"
     },
     {
         "source": "ArXiv",
         "label": "Artificial Intelligence (cs.AI)",
-        "link": "https://export.arxiv.org/api/query?search_query=cat:cs.AI&sortBy=submittedDate&sortOrder=descending&max_results=300"
+        "link": "https://export.arxiv.org/api/query?search_query=cat:cs.AI&sortBy=submittedDate&sortOrder=descending&max_results=100"
     },
 ]
 
