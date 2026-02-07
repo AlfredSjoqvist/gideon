@@ -1,37 +1,35 @@
 import sqlite3
+import json
 import os
+from config import DB_FOLDER, DB_FILE_NAME
 
-DB_FILE = "data/news.db"
-OUTPUT_FILE = "latest_scraped_data.txt"
+DB_FILE = os.path.join(DB_FOLDER, DB_FILE_NAME)
+OUTPUT_FILE = "latest_scraped_data.json"
 
-def export_db_to_txt():
+def export_db_to_json():
     if not os.path.exists(DB_FILE):
         print(f"Error: Database file {DB_FILE} not found.")
         return
 
     conn = sqlite3.connect(DB_FILE)
+    # This allows us to access columns by name (like a dictionary)
+    conn.row_factory = sqlite3.Row 
     cursor = conn.cursor()
     
     try:
-        # Fetch everything from the articles table
+        # Fetch everything, sorted by most recently scraped
         cursor.execute("SELECT * FROM articles ORDER BY scraped_at DESC")
         rows = cursor.fetchall()
         
-        # Get column names to use as headers
-        column_names = [description[0] for description in cursor.description]
+        # Convert the SQLite rows into a list of standard Python dictionaries
+        data_list = [dict(row) for row in rows]
         
         with open(OUTPUT_FILE, "w", encoding="utf-8") as f:
-            # Write headers
-            f.write(f"{' | '.join(column_names)}\n")
-            f.write("-" * 100 + "\n")
-            
-            # Write data rows
-            for row in rows:
-                # Convert each element in the row to a string and join them
-                line = " | ".join(str(item) for item in row)
-                f.write(line + "\n")
+            # indent=4 makes it pretty-printed and readable in VS Code
+            # ensure_ascii=False ensures emojis and special chars print correctly
+            json.dump(data_list, f, indent=4, ensure_ascii=False)
                 
-        print(f"Success! Entire database printed to {OUTPUT_FILE}")
+        print(f"Success! Database exported to {OUTPUT_FILE} ({len(data_list)} items)")
         
     except sqlite3.Error as e:
         print(f"Database error: {e}")
@@ -39,4 +37,4 @@ def export_db_to_txt():
         conn.close()
 
 if __name__ == "__main__":
-    export_db_to_txt()
+    export_db_to_json()
