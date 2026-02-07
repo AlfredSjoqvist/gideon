@@ -1,14 +1,16 @@
-import feedparser
-import sqlite3
-import datetime
 import os
 import re
 import time
 import html
-import json
-from config import RSS_FEEDS, DB_FOLDER, DB_FILE_NAME
+import datetime
+import feedparser
+import psycopg2
+from psycopg2.extras import Json
+from config import RSS_FEEDS
 
-DB_FILE = os.path.join(DB_FOLDER, DB_FILE_NAME)
+# Fetch the connection string from environment variables
+# This keeps your password safe. locally, put this in your .env file.
+DB_URL = os.getenv("DATABASE_URL")
 
 def clean_text_content(raw_html):
     """
@@ -27,28 +29,41 @@ def clean_text_content(raw_html):
     # 3. Normalize whitespace
     return " ".join(text.split())
 
+def get_db_connection():
+    if not DB_URL:
+        raise ValueError("DATABASE_URL environment variable is not set. Please set it in .env or GitHub Secrets.")
+    return psycopg2.connect(DB_URL)
+
 def init_db():
-    if not os.path.exists(DB_FOLDER): 
-        os.makedirs(DB_FOLDER)
+    """
+    Creates the table in Supabase if it doesn't exist.
+    """
+    conn = get_db_connection()
+    cur = conn.cursor()
     
-    conn = sqlite3.connect(DB_FILE)
-    c = conn.cursor()
+    # Postgres Schema:
+    # - metadata is JSONB (Better than TEXT for querying later)
+    # - published/scraped_at are TIMESTAMP
+    cur.execute('''
+        CREATE TABLE IF NOT EXISTS articles (
+            link TEXT PRIMARY KEY,
+            title TEXT,
+            summary TEXT,
+            published TIMESTAMP,
+            source_feed TEXT,
+            metadata JSONB,
+            scraped_at TIMESTAMP
+        );
+    ''')
     
-    # --- SCHEMA UPDATE ---
-    # We added a 'metadata' column to store JSON (Authors, Tags, etc.)
-    # 'summary' now contains ONLY the clean text content.
-    c.execute('''CREATE TABLE IF NOT EXISTS articles 
-                 (link TEXT PRIMARY KEY, 
-                  title TEXT, 
-                  summary TEXT, 
-                  published TEXT, 
-                  source_feed TEXT, 
-                  metadata TEXT, 
-                  scraped_at TEXT)''')
     conn.commit()
-    return conn
+    cur.close()
+    conn.close()
 
 def parse_date(entry):
+    """
+    Parses RSS/Atom dates into a Python datetime object.
+    """
     dt = None
     if hasattr(entry, 'published_parsed') and entry.published_parsed:
         dt = datetime.datetime(*entry.published_parsed[:6])
@@ -58,12 +73,16 @@ def parse_date(entry):
     if not dt:
         dt = datetime.datetime.now()
         
-    return dt.strftime('%Y-%m-%d %H:%M:%S')
+    return dt
 
 def ingest():
-    print(f"--- Starting Ingest: {datetime.datetime.now()} ---")
-    conn = init_db()
-    c = conn.cursor()
+    print(f"--- ☁️ Starting Cloud Ingest: {datetime.datetime.now()} ---")
+    
+    # Ensure table exists (safe to run every time)
+    init_db()
+    
+    conn = get_db_connection()
+    cur = conn.cursor()
     total_new_items = 0
 
     for feed in RSS_FEEDS:
@@ -85,48 +104,62 @@ def ingest():
                 if not link:
                     link = entry.get('id', '')
                 
-                # Check duplication
-                c.execute("SELECT 1 FROM articles WHERE link = ?", (link,))
-                if c.fetchone():
-                    continue
+                # Check duplication relies on ON CONFLICT below, so we proceed to processing
 
                 title = clean_text_content(entry.get('title', 'No Title'))
                 
                 # --- 2. STRUCTURED METADATA ---
-                # Instead of merging strings, we build a dictionary
                 meta_payload = {
                     "authors": [clean_text_content(a.name) for a in entry.get('authors', [])],
                     "tags": [t.get('term') for t in entry.get('tags', []) if t.get('term')],
                     "comments_url": entry.get('comments', ''), # For HN
-                    "raw_score": entry.get('points', None) # Sometimes available in HN RSS extensions
+                    "raw_score": entry.get('points', None) # Sometimes available in HN RSS
                 }
                 
-                # Convert dictionary to JSON string for storage
-                metadata_json = json.dumps(meta_payload)
-
                 # --- 3. CLEAN SUMMARY ---
-                # Keep this pure text. No "AUTHORS:" prefixes.
                 raw_summary = entry.get('summary', '') or entry.get('description', '')
                 clean_summary = clean_text_content(raw_summary)
 
                 # --- 4. DATE ---
                 published = parse_date(entry)
 
-                # --- 5. INSERT ---
+                # --- 5. INSERT INTO SUPABASE ---
                 try:
-                    c.execute('''INSERT INTO articles VALUES (?, ?, ?, ?, ?, ?, ?)''', 
-                              (link, title, clean_summary, published, source_name, metadata_json, datetime.datetime.now().isoformat()))
-                    total_new_items += 1
-                    print(f"   + [NEW] {title[:40]}...")
+                    # Postgres syntax uses %s placeholders
+                    cur.execute(
+                        """
+                        INSERT INTO articles 
+                        (link, title, summary, published, source_feed, metadata, scraped_at)
+                        VALUES (%s, %s, %s, %s, %s, %s, %s)
+                        ON CONFLICT (link) DO NOTHING
+                        """,
+                        (
+                            link, 
+                            title, 
+                            clean_summary, 
+                            published, 
+                            source_name, 
+                            Json(meta_payload), # Automatically handles JSON serialization
+                            datetime.datetime.now()
+                        )
+                    )
+                    
+                    # Check if a row was actually inserted (vs skipped)
+                    if cur.rowcount > 0:
+                        total_new_items += 1
+                        print(f"   + [NEW] {title[:40]}...")
+                
                 except Exception as e:
                     print(f"   ! DB Error: {e}")
+                    conn.rollback() # Essential in Postgres to reset cursor after an error
 
         except Exception as e:
             print(f"   ! Failed to parse feed: {e}")
 
     conn.commit()
+    cur.close()
     conn.close()
-    print(f"--- Finished. Added {total_new_items} articles. ---")
+    print(f"--- Finished. Added {total_new_items} articles to Supabase. ---")
 
 if __name__ == "__main__":
     ingest()
