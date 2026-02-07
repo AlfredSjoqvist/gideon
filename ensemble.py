@@ -69,6 +69,7 @@ class Article:
             f"<title>{self.title}</title>",
             f"<author>{', '.join(authors_list)}</author>" if authors_list else None,
             f"<summary>{self.summary}</summary>",
+            f"{self.metadata}      {self.source}"
             "</article>"
         ]
 
@@ -118,7 +119,7 @@ query = """
         SELECT link, title, summary, metadata
         FROM articles 
         WHERE source ILIKE 'Inoreader%' 
-          AND feed_label = 'Reddit AI'
+          AND feed_label = 'AI News'
           AND published >= now() - interval '24 hours'
     """
 

@@ -12,11 +12,6 @@ RSS_FEEDS = [
     },
     {
         "source": "Inoreader",
-        "label": "Data Science",
-        "link": "https://www.inoreader.com/stream/user/1003596242/tag/Data%20Science"
-    },
-    {
-        "source": "Inoreader",
         "label": "Tech",
         "link": "https://www.inoreader.com/stream/user/1003596242/tag/General%20Tech"
     },
