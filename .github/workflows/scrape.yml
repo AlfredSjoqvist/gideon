@@ -1,0 +1,37 @@
+name: Scrape RSS Feed
+
+on:
+  schedule:
+    - cron: '*/5 * * * *'  # Runs every 5 minutes (fastest possible on GitHub)
+  workflow_dispatch:       # Allows you to click "Run Now" manually
+
+permissions:
+  contents: write          # CRITICAL: Allows the bot to write to the DB
+
+jobs:
+  scrape-and-commit:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+          cache: 'pip'
+
+      - name: Install Dependencies
+        run: pip install -r requirements.txt
+
+      - name: Run Scraper
+        run: python ingest.py
+
+      - name: Commit and Push Changes
+        run: |
+          git config --global user.name "NewsBot"
+          git config --global user.email "bot@noreply.github.com"
+          git add data/news.db
+          # Only commit if there are changes (avoids errors if no new news)
+          git commit -m "Auto-update: New articles scraped" || exit 0
+          git push
