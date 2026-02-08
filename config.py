@@ -24,6 +24,11 @@ RSS_FEEDS = [
         "source": "Inoreader",
         "label": "Reddit AI",
         "link": "https://www.inoreader.com/stream/user/1003596242/tag/Reddit%20AI"
+    },   
+    {
+        "source": "Inoreader",
+        "label": "Sverige",
+        "link": "https://www.inoreader.com/stream/user/1003596242/tag/RSS%20Sverige"
     },    
     {
         "source": "HackerNews",
