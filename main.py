@@ -3,6 +3,7 @@ import json
 import time
 import requests
 from dotenv import load_dotenv
+from google import genai
 
 # --- IMPORTS FROM YOUR CORE LIBRARY ---
 from gideon_core import Corpus, Stage1Trial, DailyTrial, Article
@@ -250,7 +251,7 @@ def main():
     ]
 
     for job in jobs:
-        winner_corpus = run_stage1_job(**job)
+        winner_corpus, job_cost = run_stage1_job(**job)
         STAGE_1_TOTAL_COST += job_cost
         if winner_corpus:
             for art in winner_corpus.articles:
