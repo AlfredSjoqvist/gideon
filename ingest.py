@@ -2,6 +2,7 @@ import os
 import re
 import time
 import html
+import sys
 import datetime
 import feedparser
 import psycopg2
@@ -13,6 +14,10 @@ DB_URL = os.getenv("DATABASE_URL")
 
 # Browser Header to prevent 403 Forbidden
 USER_AGENT = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+
+# Force UTF-8 for Windows Consoles to prevent print crashes
+if sys.platform == "win32":
+    sys.stdout.reconfigure(encoding='utf-8')
 
 def clean_text_content(raw_html):
     if not raw_html: return ""
@@ -80,28 +85,24 @@ def ingest():
         label_name = feed["label"]
         rss_url = feed["link"]
         
-        # --- FIX: Rate Limit for Inoreader ---
-        # 2 second pause prevents hitting the 429 Too Many Requests wall
+        # Rate Limit for Inoreader/ArXiv
         if "arxiv" in rss_url.lower() or "inoreader" in rss_url.lower():
             time.sleep(2)
 
         print(f"Fetching: {source_name} ({label_name})...")
         
         try:
-            # Parse with User Agent
             parsed = feedparser.parse(rss_url, agent=USER_AGENT)
             
-            # --- DEBUG: Print HTTP Status ---
-            # This will tell you if Inoreader is blocking you (429 or 403)
             status = getattr(parsed, 'status', 'Unknown')
             if status != 200 and status != 'Unknown':
-                print(f"  ❌ Error: Server returned HTTP {status} (Blocked/Limit)")
+                print(f"  ❌ Error: Server returned HTTP {status}")
                 continue
 
             if not parsed.entries:
-                print(f"  ⚠️ Warning: No entries found in feed. (Bozo={parsed.bozo})")
+                print(f"  ⚠️ Warning: No entries found.")
 
-            for entry in parsed.entries:
+            for i, entry in enumerate(parsed.entries):
                 link = entry.get('link') or entry.get('id', '')
                 if not link: continue 
 
@@ -140,22 +141,32 @@ def ingest():
                         """,
                         (link, title, clean_summary[:5000], published, source_name, label_name, Json(meta_payload), datetime.datetime.now())
                     )
+                    
                     if cur.rowcount > 0:
                         total_new_items += 1
-                        # Use try/except on print to avoid Windows Unicode console crashes
+                        
+                        # --- SAFE PRINTING ---
+                        # We print safely so the console never crashes the loop
                         try:
+                            # Try printing normally
                             print(f"   + [NEW] {title[:40]}...")
-                        except UnicodeEncodeError:
-                            print(f"   + [NEW] (Title contains special characters)")
+                        except Exception:
+                            # Fallback if Windows fails to print 'å' or emojis
+                            print(f"   + [NEW] (Item added, title not displayable)")
+                        
+                        # --- INTERMEDIATE COMMIT ---
+                        # Save every 5 items. If item #6 crashes, items #1-5 are safe.
+                        if total_new_items % 5 == 0:
+                            conn.commit()
                 
                 except Exception as e:
-                    print(f"   ! DB Error: {e}")
+                    print(f"   ! DB Insert Error: {e}")
                     conn.rollback()
 
         except Exception as e:
             print(f"   ! Failed to parse feed: {e}")
 
-    conn.commit()
+    conn.commit() # Final commit
     cur.close()
     conn.close()
     print(f"--- Finished. Added {total_new_items} articles. ---")
