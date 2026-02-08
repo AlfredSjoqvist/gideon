@@ -35,7 +35,7 @@ def get_last_24h_articles():
                 source,
                 feed_label, 
                 metadata
-            FROM articles 
+            FROM articles
             WHERE published >= now() - interval '72 hours'
             ORDER BY published DESC;
         """
