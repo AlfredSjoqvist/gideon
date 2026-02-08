@@ -21,39 +21,96 @@ load_dotenv()
 # --- CONFIGURATION ---
 DB_URL = os.getenv("DATABASE_URL")
 PUSHCUT_URL = os.getenv("PUSHCUT_TRIGGER_URL")
+GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
+
+def generate_notification_hook(client, title, analysis):
+    """
+    Uses Gemini Flash to generate a high-density, 300-char hook.
+    """
+    prompt = f"""
+    You are a Breaking Tech News Editor. Write a notification body for this article.
+    
+    HEADLINE: {title}
+    ANALYSIS: {analysis[:2000]}
+    
+    CONSTRAINTS:
+    1. Length: STRICTLY between 250-350 characters.
+    2. Tone: Dense, functional, urgent. No "click here" or "read more".
+    3. Content: State the core implication or value add for a smart AI/ML Engineer M.Sc student.
+    
+    OUTPUT: Just the text.
+    """
+    try:
+        # Using gemini-2.0-flash for speed/cost efficiency
+        resp = client.models.generate_content(
+            model="gemini-3-flash-preview", 
+            contents=prompt
+        )
+        return resp.text.strip()
+    except Exception as e:
+        print(f"      ⚠️ Hook generation failed: {e}")
+        # Fallback to truncation if AI fails
+        return analysis[:300] + "..."
 
 def send_simple_pushcut(articles):
-    """Sends top 4 articles as notifications without AI Image gen."""
+    """Sends high priority articles with AI-generated hooks."""
     if not PUSHCUT_URL:
         print("⚠️ Pushcut URL missing. Skipping notifications.")
         return
 
-    print(f"\n🚀 Sending Notifications for Top {len(articles[:4])} Picks...")
-    
-    for art in articles[:4]:
-        score = art.metadata.get('ensemble_score', 0)
-        # Visual stars for the notification title
-        score_icon = "⭐⭐⭐" if score >= 2 else "⭐"
+    # Initialize Gemini Client for Hook Generation
+    if not GEMINI_API_KEY:
+        print("⚠️ Gemini API Key missing. Hooks will fail.")
+        return
         
-        # Try to find an existing image in metadata, else None
+    client = genai.Client(api_key=GEMINI_API_KEY)
+
+    # Filter Strategy
+    unanimous_picks = [a for a in articles if a.metadata.get('ensemble_score', 0) == 2]
+    split_picks = [a for a in articles if a.metadata.get('ensemble_score', 0) == 1]
+    
+    final_queue = unanimous_picks[:]
+    slots_needed = max(0, 4 - len(final_queue))
+    
+    if slots_needed > 0:
+        final_queue.extend(split_picks[:slots_needed])
+
+    # Cap at 6 to avoid spamming if too many unanimous
+    final_queue = final_queue[:6]
+
+    if not final_queue:
+        print("⚠️ No articles qualified for notification.")
+        return
+
+    print(f"\n🚀 Sending {len(final_queue)} Notifications...")
+    
+    for art in final_queue:
+        # Title logic
+        title_text = f"GIDEON: {art.title}"
+        
+        # Image logic
         img_url = art.metadata.get('thumbnail') or art.metadata.get('image')
         
-        # Rationale comes from the DailyTrial Stage 1 analysis
-        rationale = art.metadata.get('deep_analysis', '')[:300] + "..."
+        # Body logic: Generate custom hook
+        print(f"   ✨ Generating hook for: {art.title[:30]}...")
+        raw_analysis = art.metadata.get('deep_analysis', '')
+        hook_text = generate_notification_hook(client, art.title, raw_analysis)
 
         payload = {
-            "title": f"{score_icon} Gideon: {art.title}",
-            "text": rationale,
-            "image": img_url, # Optional, might be null
+            "title": title_text,
+            "text": hook_text,
+            "image": img_url, 
             "defaultAction": {"url": art.link}
         }
         
         try:
             requests.post(PUSHCUT_URL, json=payload)
-            print(f"   🔔 Sent: {art.title[:40]}...")
-            time.sleep(0.5) # Slight delay to ensure delivery order
+            print(f"      🔔 Sent.")
+            time.sleep(1.0) 
         except Exception as e:
-            print(f"   ❌ Push failed: {e}")
+            print(f"      ❌ Push failed: {e}")
+
+
 
 def run_stage1_job(query, judge_panel, winners_count, ai_model, run_name):
     """Orchestrates a single Stage 1 trial run."""
@@ -194,6 +251,7 @@ def main():
 
     for job in jobs:
         winner_corpus = run_stage1_job(**job)
+        STAGE_1_TOTAL_COST += job_cost
         if winner_corpus:
             for art in winner_corpus.articles:
                 MASTER_CORPUS.add_article(art)
@@ -216,11 +274,9 @@ def main():
     daily = DailyTrial(db_url=DB_URL)
 
     # A. Scrape & Analyze (Gemini 3 Pro)
-    # This also saves individual article analysis to the 'important' table
     daily.run_stage_1_analysis(MASTER_CORPUS)
 
-    # B. The Board Vote (Gemini + Claude Ensembe)
-    # Returns top 6 articles with scores
+    # B. The Board Vote (Gemini + Claude Ensemble)
     top_picks = daily.run_stage_2_ensemble()
 
     # --- PART 3: NOTIFICATIONS ---
@@ -230,7 +286,6 @@ def main():
         print("⚠️ No top picks returned from ensemble.")
 
     # --- PART 4: NEWSLETTER GENERATION ---
-    # Generates the 5-min read and saves it to 'blog_entries' DB
     daily.run_stage_3_newsletter()
 
     # --- FINAL TALLY ---
@@ -238,8 +293,8 @@ def main():
 
     print("\n" + "="*60)
     print(f"🏁 PIPELINE COMPLETE")
-    print(f"   Stage 1 (Filtering):  ${STAGE_1_TOTAL_COST:.4f}")
-    print(f"   Stage 2/3 (Daily):    ${daily.total_cost:.4f}")
+    print(f"   Stage 1   (Filtering):  ${STAGE_1_TOTAL_COST:.4f}")
+    print(f"   Stage 2-4 (DailyTrial): ${daily.total_cost:.4f}")
     print(f"   ------------------------------")
     print(f"   💰 GRAND TOTAL:       ${GRAND_TOTAL:.4f}")
     print("="*60)

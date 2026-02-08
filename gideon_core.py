@@ -46,6 +46,8 @@ PRICING = {
     "claude-opus-4-6":             {"input": 5.00, "output": 25.00},
 }
 
+
+
 # --- HELPERS ---
 def _debug_dump(filename, data, description=""):
     """Helper to dump intermediate data to JSON files for debugging."""
@@ -67,6 +69,21 @@ def _debug_dump(filename, data, description=""):
     
     with open(filepath, 'w', encoding='utf-8') as f:
         json.dump(dump_data, f, indent=2, default=str)
+
+def api_retry(func, retries=5, delay=60, description="API Call"):
+    """Retries a function call 5 times with 60s delay on failure."""
+    for attempt in range(retries):
+        try:
+            return func()
+        except Exception as e:
+            print(f"      ⚠️ {description} failed (Attempt {attempt+1}/{retries}). Error: {e}")
+            if attempt < retries - 1:
+                print(f"      ⏳ Sleeping {delay}s before retry...")
+                time.sleep(delay)
+            else:
+                print(f"      ❌ {description} PERMANENTLY FAILED.")
+                raise e
+
 
 def normalize_url(u):
     """Normalizes URLs for consistent matching."""
@@ -307,35 +324,26 @@ class Stage1Judge(Judge):
         return final_results
 
 
+
 class Stage1Trial:
     def __init__(self, winners_count, judge_configs):
-        """
-        judge_configs: List of dicts [{"name": "...", "prompt": "...", "weight": 0.4}]
-        """
         self.winners_count = winners_count
         self.judge_configs = judge_configs
 
     def convene(self, corpus, ai_model):
         print("\n--- 🏛️  Convening Stage 1 Trial ---")
-        
-        # 1. Prepare Batches
         batching_algo = ContextSort()
         deck = BatchDeck(corpus, 8, batching_algo, BASE_RANKING_PROMPT)
-        
         all_verdicts = {}
         total_trial_cost = 0.0
 
-        # 2. Run Judges
         for config in self.judge_configs:
             judge = Stage1Judge(config["prompt"], ai_model, config["name"])
             verdict = judge.verdict(deck)
-            
             all_verdicts[config["name"]] = verdict
             total_trial_cost += judge.bill
 
         print(f"💰 Trial Complete. Total Cost: ${total_trial_cost:.4f}")
-
-        # 3. Aggregate Scores
         final_scores = {}
         all_links = set().union(*[v.keys() for v in all_verdicts.values()])
         detailed_debug = {}
@@ -343,37 +351,26 @@ class Stage1Trial:
         for link in all_links:
             weighted_sum = 0
             breakdown = {}
-            
             for config in self.judge_configs:
                 name = config["name"]
                 weight = config["weight"]
-                
-                # Default to 0 if judge didn't see/rank this article
                 raw_score = all_verdicts[name].get(link, {}).get('score', 0)
                 weighted_sum += (raw_score * weight)
                 breakdown[name] = raw_score
-            
             norm_link = normalize_url(link)
             final_scores[norm_link] = weighted_sum
             detailed_debug[norm_link] = {"weighted": weighted_sum, "breakdown": breakdown, "orig_link": link}
 
-        _debug_dump("5_aggregation", detailed_debug, "Score Aggregation")
-
-        # 4. Sort Winners
         sorted_candidates = sorted(final_scores.items(), key=lambda x: x[1], reverse=True)
         top_links = [item[0] for item in sorted_candidates[:self.winners_count]]
-
-        # 5. Build Result (Sorted)
         winner_corpus = Corpus()
         winner_json = []
 
         print("\n🏆 Top Selections:")
         for norm_link in top_links:
-            # Find original article object
             for art in corpus.articles:
                 if normalize_url(art.link) == norm_link:
                     winner_corpus.add_article(art)
-                    
                     score_info = detailed_debug.get(norm_link, {})
                     entry = {
                         "title": art.title,
@@ -384,11 +381,8 @@ class Stage1Trial:
                     }
                     winner_json.append(entry)
                     print(f"  {entry['score']:.1f} | {entry['title'][:60]}...")
-                    break # Stop searching corpus for this link
-
-        _debug_dump("6_final_winners", winner_json)
+                    break
         
-        # --- FIX: Return the tuple so run_gideon.py receives the cost ---
         return winner_corpus, winner_json, total_trial_cost
 
 
@@ -404,7 +398,7 @@ class DailyTrial:
         self.total_cost = 0.0
         
         self.gemini_client = genai.Client(api_key=os.getenv("GEMINI_API_KEY"))
-        self.anthropic_client = Anthropic(api_key=os.getenv("ANTHROPIC_API_KEY"), timeout=60.0) if os.getenv("ANTHROPIC_API_KEY") and Anthropic else None
+        self.anthropic_client = Anthropic(api_key=os.getenv("ANTHROPIC_API_KEY"), timeout=300.0) if os.getenv("ANTHROPIC_API_KEY") and Anthropic else None
 
     def _track_cost(self, model, input_chars, output_chars):
         in_tok = input_chars / 4
@@ -417,10 +411,8 @@ class DailyTrial:
     def run_stage_1_analysis(self, corpus):
         print(f"\n🕵️  DailyTrial Stage 1: Deep Analysis on {len(corpus.articles)} articles...")
         stage1_debug = []
-
         for idx, art in enumerate(corpus.articles):
             print(f"   [{idx+1}/{len(corpus.articles)}] Analyzing: {art.title[:50]}...")
-            
             try:
                 downloaded = trafilatura.fetch_url(art.link)
                 full_text = trafilatura.extract(downloaded) if downloaded else ""
@@ -428,21 +420,19 @@ class DailyTrial:
                 print(f"      ⚠️ Scrape failed: {e}")
                 full_text = ""
             
-            if not full_text or len(full_text) < 300:
-                full_text = art.summary
-
+            if not full_text or len(full_text) < 300: full_text = art.summary
             prompt = DAILY_SUMMARY_PROMPT.format(full_text=full_text[:25000])
             
+            def _analyze():
+                resp = self.gemini_client.models.generate_content(model=MODEL_SUMMARY, contents=prompt)
+                return resp.text
+
             try:
-                resp = self.gemini_client.models.generate_content(
-                    model=MODEL_SUMMARY, contents=prompt
-                )
-                analysis = resp.text
+                analysis = api_retry(_analyze, description="Stage 1 Analysis")
                 cost = self._track_cost(MODEL_SUMMARY, len(prompt), len(analysis))
                 stage1_debug.append({"title": art.title, "analysis": analysis, "cost": cost})
-            except Exception as e:
-                print(f"      ❌ AI Error: {e}")
-                analysis = f"Analysis failed. Original Summary: {art.summary}"
+            except Exception:
+                analysis = f"Analysis failed after retries. Original Summary: {art.summary}"
 
             art.metadata['deep_analysis'] = analysis
             self.summarized_articles.append(art)
@@ -455,7 +445,6 @@ class DailyTrial:
     def run_stage_2_ensemble(self):
         if not self.summarized_articles: return []
         print(f"\n🗳️  DailyTrial Stage 2: The Board of Directors (Gemini & Claude)...")
-        
         candidates_text = ""
         for i, art in enumerate(self.summarized_articles):
             analysis_snippet = art.metadata.get('deep_analysis', '')[:400].replace("\n", " ")
@@ -466,35 +455,32 @@ class DailyTrial:
         debug_votes = {"gemini": [], "claude": []}
         
         # 1. Gemini
-        try:
+        def _vote_gemini():
             print(f"   🤖 Gemini ({GEMINI_RANK}) is voting...")
-            resp = self.gemini_client.models.generate_content(
-                model=GEMINI_RANK, 
-                contents=voting_prompt, 
-                config=types.GenerateContentConfig(response_mime_type="application/json", temperature=0.0)
-            )
-            data = json.loads(resp.text)
+            resp = self.gemini_client.models.generate_content(model=GEMINI_RANK, contents=voting_prompt, config=types.GenerateContentConfig(response_mime_type="application/json", temperature=0.0))
+            return resp.text
+
+        try:
+            resp_text = api_retry(_vote_gemini, description="Gemini Vote")
+            data = json.loads(resp_text)
             winners = data.get("winners", [])
             debug_votes["gemini"] = winners
-            self._track_cost(GEMINI_RANK, len(voting_prompt), len(resp.text))
-            
+            self._track_cost(GEMINI_RANK, len(voting_prompt), len(resp_text))
             for item in winners:
                 idx = fuzzy_match_article(item.get("title"), item.get("link"), self.summarized_articles)
                 if idx != -1: votes[idx] += 1
                 else: print(f"      ⚠️ Gemini hallucinated: {item.get('title')[:30]}...")
-        except Exception as e: print(f"      ⚠️ Gemini vote failed: {e}")
+        except Exception as e: print(f"      ⚠️ Gemini vote failed completely: {e}")
 
         # 2. Claude
         if self.anthropic_client:
-            try:
+            def _vote_claude():
                 print(f"   🎭 Claude ({CLAUDE_RANK}) is voting...")
-                resp = self.anthropic_client.messages.create(
-                    model=CLAUDE_RANK, 
-                    max_tokens=1000, 
-                    temperature=0.0,
-                    messages=[{"role": "user", "content": voting_prompt}]
-                )
-                txt = resp.content[0].text
+                resp = self.anthropic_client.messages.create(model=CLAUDE_RANK, max_tokens=1000, temperature=0.0, messages=[{"role": "user", "content": voting_prompt}])
+                return resp.content[0].text
+
+            try:
+                txt = api_retry(_vote_claude, description="Claude Vote")
                 self._track_cost(CLAUDE_RANK, len(voting_prompt), len(txt))
                 match = re.search(r'\{.*\}', txt, re.DOTALL)
                 if match:
@@ -505,10 +491,9 @@ class DailyTrial:
                         idx = fuzzy_match_article(item.get("title"), item.get("link"), self.summarized_articles)
                         if idx != -1: votes[idx] += 1
                         else: print(f"      ⚠️ Claude hallucinated: {item.get('title')[:30]}...")
-            except Exception as e: print(f"      ⚠️ Claude vote failed: {e}")
+            except Exception as e: print(f"      ⚠️ Claude vote failed completely: {e}")
 
         if SHOW_FULL_JSON_OUTPUT: _debug_dump("daily_stage2_votes", debug_votes)
-
         ranked_indices = sorted(votes, key=votes.get, reverse=True)
         final_selection = []
         print("\n   🏆 Ensemble Results:")
@@ -527,30 +512,22 @@ class DailyTrial:
     def run_stage_3_newsletter(self):
         print("\n✍️  DailyTrial Stage 3: Writing The Daily Briefing (Claude Opus)...")
         if not self.anthropic_client: return ""
-
         context_block = ""
         for art in self.summarized_articles:
             score = art.metadata.get('ensemble_score', 0)
             importance = "HIGH PRIORITY" if score >= 2 else ("Medium Priority" if score == 1 else "Reference")
             context_block += f"[{importance}] TITLE: {art.title}\nLINK: {art.link}\nSUMMARY: {art.metadata.get('deep_analysis')}\n---\n"
-
         prompt = DAILY_NEWSLETTER_PROMPT.format(context_block=context_block)
 
+        def _write_newsletter():
+            resp = self.anthropic_client.messages.create(model=CLAUDE_RANK, max_tokens=4000, messages=[{"role": "user", "content": prompt}])
+            return resp.content[0].text
+
         try:
-            resp = self.anthropic_client.messages.create(
-                model=CLAUDE_RANK,
-                max_tokens=4000,
-                messages=[{"role": "user", "content": prompt}]
-            )
-            text_output = resp.content[0].text
+            text_output = api_retry(_write_newsletter, description="Claude Opus Newsletter")
             self._track_cost(CLAUDE_RANK, len(prompt), len(text_output))
-            
-            # Save to Blog Database
             self._save_blog_entry(text_output)
-            
-            if SHOW_FULL_JSON_OUTPUT:
-                _debug_dump("daily_stage3_briefing", {"prompt": prompt, "result": text_output, "total_cost": self.total_cost})
-            
+            if SHOW_FULL_JSON_OUTPUT: _debug_dump("daily_stage3_briefing", {"prompt": prompt, "result": text_output, "total_cost": self.total_cost})
             return text_output
         except Exception as e:
             print(f"   ❌ Newsletter Generation Failed: {e}")
@@ -561,21 +538,8 @@ class DailyTrial:
         try:
             conn = psycopg2.connect(self.db_url)
             cur = conn.cursor()
-            cur.execute('''
-                CREATE TABLE IF NOT EXISTS important (
-                    link TEXT PRIMARY KEY,
-                    title TEXT, summary TEXT, published TIMESTAMP, source TEXT, feed_label TEXT,
-                    metadata JSONB, chosen_at TIMESTAMP, rationale TEXT
-                );
-            ''')
-            cur.execute(
-                """
-                INSERT INTO important (link, title, summary, published, source, feed_label, metadata, chosen_at, rationale)
-                VALUES (%s, %s, %s, %s, %s, %s, %s, NOW(), %s)
-                ON CONFLICT (link) DO UPDATE SET rationale = EXCLUDED.rationale, metadata = EXCLUDED.metadata, chosen_at = NOW()
-                """,
-                (article.link, article.title, article.summary, article.published, article.source, article.feed_label, Json(article.metadata), rationale)
-            )
+            cur.execute('''CREATE TABLE IF NOT EXISTS important (link TEXT PRIMARY KEY, title TEXT, summary TEXT, published TIMESTAMP, source TEXT, feed_label TEXT, metadata JSONB, chosen_at TIMESTAMP, rationale TEXT);''')
+            cur.execute("""INSERT INTO important (link, title, summary, published, source, feed_label, metadata, chosen_at, rationale) VALUES (%s, %s, %s, %s, %s, %s, %s, NOW(), %s) ON CONFLICT (link) DO UPDATE SET rationale = EXCLUDED.rationale, metadata = EXCLUDED.metadata, chosen_at = NOW()""", (article.link, article.title, article.summary, article.published, article.source, article.feed_label, Json(article.metadata), rationale))
             conn.commit()
             cur.close()
             conn.close()
@@ -586,27 +550,11 @@ class DailyTrial:
         try:
             conn = psycopg2.connect(self.db_url)
             cur = conn.cursor()
-            cur.execute('''
-                CREATE TABLE IF NOT EXISTS blog_entries (
-                    entry_date DATE PRIMARY KEY,
-                    content TEXT,
-                    created_at TIMESTAMP DEFAULT NOW()
-                );
-            ''')
-            # Save using today's date as ID
+            cur.execute('''CREATE TABLE IF NOT EXISTS blog_entries (entry_date DATE PRIMARY KEY, content TEXT, created_at TIMESTAMP DEFAULT NOW());''')
             today = datetime.now().date()
-            cur.execute(
-                """
-                INSERT INTO blog_entries (entry_date, content, created_at)
-                VALUES (%s, %s, NOW())
-                ON CONFLICT (entry_date) DO UPDATE SET content = EXCLUDED.content, created_at = NOW()
-                """,
-                (today, content)
-            )
+            cur.execute("""INSERT INTO blog_entries (entry_date, content, created_at) VALUES (%s, %s, NOW()) ON CONFLICT (entry_date) DO UPDATE SET content = EXCLUDED.content, created_at = NOW()""", (today, content))
             conn.commit()
             cur.close()
             conn.close()
             print(f"   ✅ Blog entry saved to DB for date: {today}")
         except Exception as e: print(f"      ❌ Blog DB Save Error: {e}")
-
-
