@@ -74,102 +74,132 @@ def extract_image(entry):
     return None
 
 def ingest():
-    print(f"--- ☁️ Starting Universal Cloud Ingest: {datetime.datetime.now()} ---")
+    print(f"\n{'='*60}")
+    print(f"🚀 STARTING DIAGNOSTIC INGEST: {datetime.datetime.now()}")
+    print(f"{'='*60}\n")
+    
     init_db()
     conn = get_db_connection()
     cur = conn.cursor()
     total_new_items = 0
 
-    for feed in RSS_FEEDS:
+    for feed_idx, feed in enumerate(RSS_FEEDS):
         source_name = feed["source"]
         label_name = feed["label"]
         rss_url = feed["link"]
         
-        # Rate Limit for Inoreader/ArXiv
-        if "arxiv" in rss_url.lower() or "inoreader" in rss_url.lower():
-            time.sleep(2)
-
-        print(f"Fetching: {source_name} ({label_name})...")
+        print(f"\n[{feed_idx+1}/{len(RSS_FEEDS)}] Processing: {source_name} ({label_name})")
+        print(f"   🔗 URL: {rss_url}")
         
+        # Rate Limit
+        if "arxiv" in rss_url.lower() or "inoreader" in rss_url.lower():
+            time.sleep(1.5)
+
         try:
+            # Parse
+            print("   📡 Requesting feed...")
             parsed = feedparser.parse(rss_url, agent=USER_AGENT)
             
+            # --- DEBUG 1: Network & Feed Status ---
             status = getattr(parsed, 'status', 'Unknown')
+            bozo = getattr(parsed, 'bozo', 0)
+            print(f"   ✅ Response: HTTP {status} | Bozo: {bozo}")
+            
             if status != 200 and status != 'Unknown':
-                print(f"  ❌ Error: Server returned HTTP {status}")
+                print(f"   ❌ FATAL: Server blocked request (HTTP {status})")
                 continue
 
-            if not parsed.entries:
-                print(f"  ⚠️ Warning: No entries found.")
+            entry_count = len(parsed.entries)
+            print(f"   📦 Found {entry_count} entries in XML.")
 
+            if entry_count == 0:
+                print(f"   ⚠️ WARNING: Feed is empty. Check if URL is correct.")
+                continue
+
+            # Loop Entries
+            added_this_feed = 0
+            skipped_this_feed = 0
+            
             for i, entry in enumerate(parsed.entries):
-                link = entry.get('link') or entry.get('id', '')
-                if not link: continue 
-
-                title = clean_text_content(entry.get('title', 'No Title'))
-                image_url = extract_image(entry)
-
-                raw_summary = entry.get('summary', '') or entry.get('description', '')
-                if 'content' in entry: raw_summary = entry.content[0].get('value', raw_summary)
-                clean_summary = clean_text_content(raw_summary)
-                
-                authors_list = [clean_text_content(a.name) for a in entry.get('authors', [])]
-                tags_list = [t.get('term') for t in entry.get('tags', []) if t.get('term')]
-                
-                source_url = ""
-                if 'source' in entry:
-                    source_url = entry.source.get('href', '') or entry.source.get('url', '')
-
-                meta_payload = {
-                    "authors": authors_list,
-                    "tags": tags_list,
-                    "comments_url": entry.get('comments', ''),
-                    "thumbnail": image_url,
-                    "source_url": source_url,
-                    "guid": entry.get('id', '')
-                }
-
-                published = parse_date(entry)
-
+                # --- DEBUG 2: Item Processing ---
                 try:
-                    cur.execute(
-                        """
-                        INSERT INTO articles 
-                        (link, title, summary, published, source, feed_label, metadata, scraped_at)
-                        VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
-                        ON CONFLICT (link) DO NOTHING
-                        """,
-                        (link, title, clean_summary[:5000], published, source_name, label_name, Json(meta_payload), datetime.datetime.now())
-                    )
+                    link = entry.get('link') or entry.get('id', '')
+                    if not link: 
+                        print(f"      🔸 Item {i}: Skipped (No Link)")
+                        continue 
+
+                    title = clean_text_content(entry.get('title', 'No Title'))
                     
-                    if cur.rowcount > 0:
-                        total_new_items += 1
+                    # Log first 3 items to verify parsing works
+                    if i < 3:
+                        print(f"      🔹 Item {i}: '{title[:30]}...'")
+
+                    # Extraction logic
+                    image_url = extract_image(entry)
+                    raw_summary = entry.get('summary', '') or entry.get('description', '')
+                    if 'content' in entry: raw_summary = entry.content[0].get('value', raw_summary)
+                    clean_summary = clean_text_content(raw_summary)
+                    
+                    authors_list = [clean_text_content(a.name) for a in entry.get('authors', [])]
+                    tags_list = [t.get('term') for t in entry.get('tags', []) if t.get('term')]
+                    
+                    source_url = ""
+                    if 'source' in entry:
+                        source_url = entry.source.get('href', '') or entry.source.get('url', '')
+
+                    meta_payload = {
+                        "authors": authors_list,
+                        "tags": tags_list,
+                        "comments_url": entry.get('comments', ''),
+                        "thumbnail": image_url,
+                        "source_url": source_url,
+                        "guid": entry.get('id', '')
+                    }
+
+                    published = parse_date(entry)
+
+                    # --- DEBUG 3: Database Interaction ---
+                    try:
+                        cur.execute(
+                            """
+                            INSERT INTO articles 
+                            (link, title, summary, published, source, feed_label, metadata, scraped_at)
+                            VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+                            ON CONFLICT (link) DO NOTHING
+                            """,
+                            (link, title, clean_summary[:5000], published, source_name, label_name, Json(meta_payload), datetime.datetime.now())
+                        )
                         
-                        # --- SAFE PRINTING ---
-                        # We print safely so the console never crashes the loop
-                        try:
-                            # Try printing normally
-                            print(f"   + [NEW] {title[:40]}...")
-                        except Exception:
-                            # Fallback if Windows fails to print 'å' or emojis
-                            print(f"   + [NEW] (Item added, title not displayable)")
-                        
-                        # --- INTERMEDIATE COMMIT ---
-                        # Save every 5 items. If item #6 crashes, items #1-5 are safe.
-                        if total_new_items % 5 == 0:
-                            conn.commit()
-                
+                        if cur.rowcount > 0:
+                            total_new_items += 1
+                            added_this_feed += 1
+                            # Force immediate commit for World News debugging
+                            conn.commit() 
+                            # Safe Print
+                            try:
+                                print(f"        ✅ INSERTED: {title[:40]}")
+                            except:
+                                print(f"        ✅ INSERTED: (Special Char Title)")
+                        else:
+                            skipped_this_feed += 1
+                            # print(f"        ⏭️  DUPLICATE: {title[:20]}...") # Uncomment to see duplicates
+
+                    except Exception as e:
+                        print(f"        ❌ DB ERROR on Item {i}: {e}")
+                        conn.rollback() # Reset transaction
+
                 except Exception as e:
-                    print(f"   ! DB Insert Error: {e}")
-                    conn.rollback()
+                    print(f"      ❌ PARSING ERROR on Item {i}: {e}")
+
+            print(f"   🏁 Result: {added_this_feed} Added | {skipped_this_feed} Skipped (Duplicates)")
 
         except Exception as e:
-            print(f"   ! Failed to parse feed: {e}")
+            print(f"   🔥 CRITICAL FEED ERROR: {e}")
 
-    conn.commit() # Final commit
-    cur.close()
     conn.close()
-    print(f"--- Finished. Added {total_new_items} articles. ---")
+    print(f"\n{'='*60}")
+    print(f"🏁 FINISHED. Total New Articles: {total_new_items}")
+    print(f"{'='*60}")
 
 if __name__ == "__main__":
     ingest()
