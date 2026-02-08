@@ -42,7 +42,7 @@ def generate_notification_hook(client, title, analysis):
     OUTPUT: Just the text.
     """
     try:
-        # Using gemini-2.0-flash for speed/cost efficiency
+        # Using gemini-3-flash-preview for speed/cost efficiency
         resp = client.models.generate_content(
             model="gemini-3-flash-preview", 
             contents=prompt
@@ -111,8 +111,6 @@ def send_simple_pushcut(articles):
         except Exception as e:
             print(f"      ❌ Push failed: {e}")
 
-
-
 def run_stage1_job(query, judge_panel, winners_count, ai_model, run_name):
     """Orchestrates a single Stage 1 trial run."""
     print(f"\n🏃 Starting Stage 1 Job: [{run_name}]")
@@ -123,23 +121,25 @@ def run_stage1_job(query, judge_panel, winners_count, ai_model, run_name):
     
     if not corpus.articles:
         print(f"   ⚠️ No articles found for [{run_name}]. Skipping.")
-        return None
+        return None, 0.0
 
     # 2. Initialize Trial
     trial = Stage1Trial(winners_count=winners_count, judge_configs=judge_panel)
     
     # 3. Convene Judges
-    # Note: Depending on your exact Stage1Trial implementation, 
-    # run .convene() and capture the resulting corpus
     try:
-        # Assuming convene returns (corpus, data, cost) based on previous context
+        # Assuming convene returns (corpus, data, cost)
         result = trial.convene(corpus, ai_model=ai_model)
-        if isinstance(result, tuple):
-            return result[0] # Return just the corpus of winners
-        return result
+        
+        # FIX: Ensure we unpack properly.
+        if isinstance(result, tuple) and len(result) == 3:
+            return result[0], result[2] # Return (Corpus, Cost)
+        
+        # Fallback if return signature is different
+        return result, 0.0 
     except Exception as e:
         print(f"   ❌ Stage 1 Error: {e}")
-        return None
+        return None, 0.0
 
 def main():
     if not DB_URL:
@@ -158,26 +158,14 @@ def main():
     jobs = [
         {
             "run_name": "reddit_ai_top",
-            "query": """
-                SELECT link, title, summary, published, source, feed_label, metadata, scraped_at
-                FROM articles 
-                WHERE source ILIKE 'Inoreader%' 
-                  AND feed_label = 'Reddit AI'
-                  AND published >= now() - interval '12 hours'
-            """,
+            "query": "SELECT link, title, summary, published, source, feed_label, metadata, scraped_at FROM articles WHERE source ILIKE 'Inoreader%' AND feed_label = 'Reddit AI' AND published >= now() - interval '24 hours'",
             "judge_panel": [{"name": "Pragmatic Engineer", "prompt": PRAGMATIC_ENGINEER_SYSTEM, "weight": 1.0}],
             "winners_count": 3,
             "ai_model": "gemini-3-flash-preview"
         },
         {
             "run_name": "general_ai_engineering",
-            "query": """
-                SELECT link, title, summary, published, source, feed_label, metadata, scraped_at
-                FROM articles 
-                WHERE source ILIKE 'Inoreader%' 
-                  AND feed_label = 'AI News'
-                  AND published >= now() - interval '12 hours'
-            """,
+            "query": "SELECT link, title, summary, published, source, feed_label, metadata, scraped_at FROM articles WHERE source ILIKE 'Inoreader%' AND feed_label = 'AI News' AND published >= now() - interval '24 hours'",
             "judge_panel": [
                 {"name": "Industry Expert", "prompt": INDUSTRY_STRATEGIST_SYSTEM, "weight": 0.5},
                 {"name": "Pragmatic Engineer", "prompt": PRAGMATIC_ENGINEER_SYSTEM, "weight": 0.5}
@@ -187,76 +175,49 @@ def main():
         },
         {
             "run_name": "geopolitical",
-            "query": """
-                SELECT link, title, summary, published, source, feed_label, metadata, scraped_at
-                FROM articles 
-                WHERE source ILIKE 'Inoreader%' 
-                  AND feed_label = 'World News'
-                  AND published >= now() - interval '12 hours'
-            """,
+            "query": "SELECT link, title, summary, published, source, feed_label, metadata, scraped_at FROM articles WHERE source ILIKE 'Inoreader%' AND feed_label = 'World News' AND published >= now() - interval '24 hours'",
             "judge_panel": [{"name": "Civilizational Expert", "prompt": CIVILIZATIONAL_ENGINEER_SYSTEM, "weight": 1.0}],
             "winners_count": 3,
             "ai_model": "gemini-2.0-flash"
         },
         {
-            "run_name": "general_tech",
-            "query": """
-                SELECT link, title, summary, published, source, feed_label, metadata, scraped_at
-                FROM articles 
-                WHERE source ILIKE 'Inoreader%' 
-                  AND feed_label = 'Tech'
-                  AND published >= now() - interval '12 hours'
-            """,
-            "judge_panel": [{"name": "Civilizational Expert", "prompt": CIVILIZATIONAL_ENGINEER_SYSTEM, "weight": 1.0}],
-            "winners_count": 2,
-            "ai_model": "gemini-2.0-flash"
-        },
-        {
             "run_name": "research_papers",
-            "query": """
-                SELECT link, title, summary, published, source, feed_label, metadata, scraped_at
-                FROM articles 
-                WHERE source ILIKE 'ArXiv%' 
-                  AND published >= now() - interval '12 hours'
-            """,
+            "query": "SELECT link, title, summary, published, source, feed_label, metadata, scraped_at FROM articles WHERE source ILIKE 'ArXiv%' AND published >= now() - interval '24 hours'",
             "judge_panel": [{"name": "Research Frontiersman", "prompt": RESEARCH_FRONTIERSMAN_SYSTEM, "weight": 1.0}],
             "winners_count": 3,
             "ai_model": "gemini-2.0-flash"
         },
         {
+            "run_name": "sweden",
+            "query": "SELECT link, title, summary, published, source, feed_label, metadata, scraped_at FROM articles WHERE source ILIKE 'Inoreader%' AND feed_label = 'Sverige' AND published >= now() - interval '24 hours'",
+            "judge_panel": [{"name": "Swedish Innovator", "prompt": SWEDISH_INNOVATION_SCOUT_SYSTEM, "weight": 1.0}],
+            "winners_count": 4,
+            "ai_model": "gemini-2.0-flash"
+        },
+        {
+            "run_name": "general_tech",
+            "query": "SELECT link, title, summary, published, source, feed_label, metadata, scraped_at FROM articles WHERE source ILIKE 'Inoreader%' AND feed_label = 'Tech' AND published >= now() - interval '24 hours'",
+            "judge_panel": [{"name": "Civilizational Expert", "prompt": CIVILIZATIONAL_ENGINEER_SYSTEM, "weight": 1.0}],
+            "winners_count": 2,
+            "ai_model": "gemini-2.0-flash"
+        },
+        {
             "run_name": "hackernews",
-            "query": """
-                SELECT link, title, summary, published, source, feed_label, metadata, scraped_at
-                FROM articles 
-                WHERE source ILIKE 'HackerNews%' 
-                  AND published >= now() - interval '12 hours'
-            """,
+            "query": "SELECT link, title, summary, published, source, feed_label, metadata, scraped_at FROM articles WHERE source ILIKE 'HackerNews%' AND published >= now() - interval '24 hours'",
             "judge_panel": [{"name": "Pragmatic Engineer", "prompt": PRAGMATIC_ENGINEER_SYSTEM, "weight": 1.0}],
             "winners_count": 2,
             "ai_model": "gemini-3-flash-preview"
-        },
-        {
-            "run_name": "sweden",
-            "query": """
-                SELECT link, title, summary, published, source, feed_label, metadata, scraped_at
-                FROM articles 
-                WHERE source ILIKE 'Inoreader%' 
-                  AND feed_label = 'Sverige'
-                  AND published >= now() - interval '12 hours'
-            """,
-            "judge_panel": [{"name": "Swedish Innovator", "prompt": SWEDISH_INNOVATION_SCOUT_SYSTEM, "weight": 1.0}],
-            "winners_count": 3,
-            "ai_model": "gemini-2.0-flash"
         }
     ]
 
     for job in jobs:
         winner_corpus, job_cost = run_stage1_job(**job)
         STAGE_1_TOTAL_COST += job_cost
+        
         if winner_corpus:
             for art in winner_corpus.articles:
                 MASTER_CORPUS.add_article(art)
-            print(f"   ✅ Added {len(winner_corpus.articles)} articles to Master Corpus.")
+            print(f"   ✅ Added {len(winner_corpus.articles)} articles. (Job Cost: ${job_cost:.4f})")
         time.sleep(1) # Rate limit safety
 
     total_candidates = len(MASTER_CORPUS.articles)
@@ -277,7 +238,7 @@ def main():
     # A. Scrape & Analyze (Gemini 3 Pro)
     daily.run_stage_1_analysis(MASTER_CORPUS)
 
-    # B. The Board Vote (Gemini + Claude Ensemble)
+    # B. The Board Vote (Gemini + Claude Ensembe)
     top_picks = daily.run_stage_2_ensemble()
 
     # --- PART 3: NOTIFICATIONS ---
@@ -294,8 +255,8 @@ def main():
 
     print("\n" + "="*60)
     print(f"🏁 PIPELINE COMPLETE")
-    print(f"   Stage 1   (Filtering):  ${STAGE_1_TOTAL_COST:.4f}")
-    print(f"   Stage 2-4 (DailyTrial): ${daily.total_cost:.4f}")
+    print(f"   Stage 1 (Filtering):  ${STAGE_1_TOTAL_COST:.4f}")
+    print(f"   Stage 2/3 (Daily):    ${daily.total_cost:.4f}")
     print(f"   ------------------------------")
     print(f"   💰 GRAND TOTAL:       ${GRAND_TOTAL:.4f}")
     print("="*60)

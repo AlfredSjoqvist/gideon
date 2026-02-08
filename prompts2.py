@@ -113,7 +113,7 @@ Ensure the most important article is at index 0.
 
 
 
-DAILY_SUMMARY_PROMPT = """
+DAILY_SUMMARY_PROMPT_TEMPLATE = """
 You are a Strategic Intelligence Analyst. Analyze this article for a 25-year-old Swedish M.Sc. student in AI/ML (Computer Engineering).
 
 USER CONTEXT:
@@ -134,7 +134,7 @@ OUTPUT FORMAT (Markdown):
 """
 
 
-DAILY_VOTING_PROMPT = """
+DAILY_VOTING_PROMPT_TEMPLATE = """
 You are a Mentor curating news for a 25-year-old AI/ML Engineer & M.Sc. Student in Sweden.
 
 CANDIDATES:
@@ -163,7 +163,7 @@ Example:
 """
 
 
-DAILY_NEWSLETTER_PROMPT = """
+DAILY_NEWSLETTER_PROMPT_TEMPLATE = """
 You are a Chief Intelligence Officer and Mentor writing a private daily briefing for a 25-year-old AI/ML Engineer & M.Sc. Student in Sweden.
 
 GOAL:
