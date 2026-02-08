@@ -75,7 +75,7 @@ def extract_image(entry):
 
 def ingest():
     print(f"\n{'='*60}")
-    print(f"🚀 STARTING DIAGNOSTIC INGEST: {datetime.datetime.now()}")
+    print(f"🚀 STARTING ROBUST INGEST: {datetime.datetime.now()}")
     print(f"{'='*60}\n")
     
     init_db()
@@ -89,58 +89,49 @@ def ingest():
         rss_url = feed["link"]
         
         print(f"\n[{feed_idx+1}/{len(RSS_FEEDS)}] Processing: {source_name} ({label_name})")
-        print(f"   🔗 URL: {rss_url}")
         
         # Rate Limit
         if "arxiv" in rss_url.lower() or "inoreader" in rss_url.lower():
-            time.sleep(1.5)
+            time.sleep(1.0)
 
         try:
             # Parse
-            print("   📡 Requesting feed...")
             parsed = feedparser.parse(rss_url, agent=USER_AGENT)
             
-            # --- DEBUG 1: Network & Feed Status ---
             status = getattr(parsed, 'status', 'Unknown')
-            bozo = getattr(parsed, 'bozo', 0)
-            print(f"   ✅ Response: HTTP {status} | Bozo: {bozo}")
-            
             if status != 200 and status != 'Unknown':
                 print(f"   ❌ FATAL: Server blocked request (HTTP {status})")
                 continue
 
-            entry_count = len(parsed.entries)
-            print(f"   📦 Found {entry_count} entries in XML.")
-
-            if entry_count == 0:
-                print(f"   ⚠️ WARNING: Feed is empty. Check if URL is correct.")
+            if not parsed.entries:
+                print(f"   ⚠️ WARNING: Feed is empty or parsing failed.")
                 continue
 
             # Loop Entries
             added_this_feed = 0
-            skipped_this_feed = 0
             
             for i, entry in enumerate(parsed.entries):
-                # --- DEBUG 2: Item Processing ---
                 try:
                     link = entry.get('link') or entry.get('id', '')
-                    if not link: 
-                        print(f"      🔸 Item {i}: Skipped (No Link)")
-                        continue 
+                    if not link: continue 
 
                     title = clean_text_content(entry.get('title', 'No Title'))
-                    
-                    # Log first 3 items to verify parsing works
-                    if i < 3:
-                        print(f"      🔹 Item {i}: '{title[:30]}...'")
-
-                    # Extraction logic
                     image_url = extract_image(entry)
+                    
                     raw_summary = entry.get('summary', '') or entry.get('description', '')
                     if 'content' in entry: raw_summary = entry.content[0].get('value', raw_summary)
                     clean_summary = clean_text_content(raw_summary)
                     
-                    authors_list = [clean_text_content(a.name) for a in entry.get('authors', [])]
+                    # --- FIX: ROBUST AUTHOR EXTRACTION ---
+                    # Replaced `a.name` with `a.get('name', '')` to handle empty <dc:creator/>
+                    authors_list = []
+                    for a in entry.get('authors', []):
+                        # Some feeds might return a string, others a dictionary
+                        if isinstance(a, str):
+                            authors_list.append(clean_text_content(a))
+                        else:
+                            authors_list.append(clean_text_content(a.get('name', '')))
+                    
                     tags_list = [t.get('term') for t in entry.get('tags', []) if t.get('term')]
                     
                     source_url = ""
@@ -158,7 +149,6 @@ def ingest():
 
                     published = parse_date(entry)
 
-                    # --- DEBUG 3: Database Interaction ---
                     try:
                         cur.execute(
                             """
@@ -173,29 +163,28 @@ def ingest():
                         if cur.rowcount > 0:
                             total_new_items += 1
                             added_this_feed += 1
-                            # Force immediate commit for World News debugging
-                            conn.commit() 
-                            # Safe Print
                             try:
-                                print(f"        ✅ INSERTED: {title[:40]}")
+                                print(f"        ✅ INSERTED: {title[:40]}...")
                             except:
                                 print(f"        ✅ INSERTED: (Special Char Title)")
-                        else:
-                            skipped_this_feed += 1
-                            # print(f"        ⏭️  DUPLICATE: {title[:20]}...") # Uncomment to see duplicates
+                            
+                            # Commit frequently to save progress
+                            if total_new_items % 5 == 0:
+                                conn.commit()
 
                     except Exception as e:
                         print(f"        ❌ DB ERROR on Item {i}: {e}")
-                        conn.rollback() # Reset transaction
+                        conn.rollback()
 
                 except Exception as e:
                     print(f"      ❌ PARSING ERROR on Item {i}: {e}")
 
-            print(f"   🏁 Result: {added_this_feed} Added | {skipped_this_feed} Skipped (Duplicates)")
+            print(f"   🏁 Added {added_this_feed} new items.")
 
         except Exception as e:
             print(f"   🔥 CRITICAL FEED ERROR: {e}")
 
+    conn.commit()
     conn.close()
     print(f"\n{'='*60}")
     print(f"🏁 FINISHED. Total New Articles: {total_new_items}")
