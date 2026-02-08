@@ -12,7 +12,8 @@ from prompts2 import (
     BASE_RANKING_PROMPT,
     DAILY_NEWSLETTER_PROMPT_TEMPLATE,
     DAILY_SUMMARY_PROMPT_TEMPLATE,
-    DAILY_VOTING_PROMPT_TEMPLATE
+    DAILY_VOTING_PROMPT_TEMPLATE,
+    DAILY_NEWSLETTER_SYSTEM_PROMPT_TEMPLATE
 )
 import trafilatura
 
@@ -396,30 +397,85 @@ class DailyTrial:
         return final_selection
 
     def run_stage_3_newsletter(self):
-        print("\n✍️  DailyTrial Stage 3: Writing The Daily Briefing (Claude Opus)...")
-        if not self.anthropic_client: return ""
+        print("\n✍️  DailyTrial Stage 3: Writing The Daily Briefing...")
+        
+        if not self.summarized_articles:
+            print("   ⚠️ No articles to write about.")
+            return ""
+
+        # 1. Prepare Context (This includes ALL articles in summarized_articles)
         context_block = ""
         for art in self.summarized_articles:
             score = art.metadata.get('ensemble_score', 0)
-            importance = "HIGH PRIORITY" if score >= 2 else ("Medium Priority" if score == 1 else "Reference")
-            context_block += f"[{importance}] TITLE: {art.title}\nLINK: {art.link}\nSUMMARY: {art.metadata.get('deep_analysis')}\n---\n"
-        prompt = DAILY_NEWSLETTER_PROMPT_TEMPLATE.format(context_block=context_block)
+            # We explicitly label the URL so the AI knows where to link
+            context_block += f"TITLE: {art.title}\nURL: {art.link}\nCONTENT: {art.metadata.get('deep_analysis')}\n---\n"
         
-        # Wrapped
-        def _write_newsletter():
-            resp = self.anthropic_client.messages.create(model=CLAUDE_RANK, max_tokens=4000, messages=[{"role": "user", "content": prompt}])
-            return resp.content[0].text
-            
+        # 2. Format Prompt
+        today_str = datetime.now().strftime("%Y-%m-%d")
+        prompt = DAILY_NEWSLETTER_PROMPT_TEMPLATE.format(context_block=context_block, date=today_str)
+        
+        # 3. Call Gemini
         try:
-            text_output = api_retry(_write_newsletter, description="Claude Opus Newsletter")
-            self._track_cost(CLAUDE_RANK, len(prompt), len(text_output))
-            self._save_blog_entry(text_output)
-            if SHOW_FULL_JSON_OUTPUT: _debug_dump("daily_stage3_briefing", {"prompt": prompt, "result": text_output, "total_cost": self.total_cost})
-            return text_output
+            resp = self.gemini_client.models.generate_content(
+                model="gemini-3-pro-preview",
+                contents=prompt,
+                config=types.GenerateContentConfig(
+                    system_instruction=DAILY_NEWSLETTER_SYSTEM_PROMPT_TEMPLATE,
+                    # INCREASED TEMP: 0.7 encourages longer, more descriptive text
+                    temperature=0.6, 
+                    max_output_tokens=30000 
+                )
+            )
+            
+            html_output = resp.text.strip()
+            if html_output.startswith("```html"):
+                html_output = html_output.replace("```html", "").replace("```", "")
+
+            # --- 4. PYTHON GENERATED REFERENCE LIST (ALL ARTICLES) ---
+            print(f"   🔗 Appending Reference List ({len(self.summarized_articles)} items)...")
+            
+            # Use 'prose-hr' to match the styling
+            refs_html = """
+            <hr class="my-12 border-gray-200 dark:border-gray-800">
+            <h2>Reference Feed</h2>
+            <ul class="not-prose space-y-3 font-sans text-sm text-gray-600 dark:text-gray-400">
+            """
+            
+            # Sort: High scores first, then everything else
+            sorted_articles = sorted(self.summarized_articles, key=lambda x: x.metadata.get('ensemble_score', 0), reverse=True)
+            
+            for art in sorted_articles:
+                score = art.metadata.get('ensemble_score', 0)
+                stars = "★" * score if score > 0 else ""
+                domain = art.source if art.source else "Source"
+                
+                # Truncate title if it's crazy long
+                display_title = art.title if len(art.title) < 100 else art.title[:97] + "..."
+
+                refs_html += f"""
+                <li class="flex items-start gap-2">
+                    <span class="text-yellow-500 font-bold min-w-[1.5rem] text-right">{stars}</span>
+                    <div class="flex-1">
+                        <a href="{art.link}" target="_blank" class="text-blue-600 dark:text-blue-400 hover:underline font-medium">
+                            {display_title}
+                        </a>
+                        <span class="ml-2 text-xs uppercase tracking-wider opacity-60">[{domain}]</span>
+                    </div>
+                </li>
+                """
+            
+            refs_html += "</ul>"
+            
+            # 5. Combine and Save
+            final_html = html_output + refs_html
+            self._save_blog_entry(final_html)
+            
+            print(f"   ✅ Blog entry generated ({len(final_html)} chars)")
+            return final_html
+
         except Exception as e:
             print(f"   ❌ Newsletter Generation Failed: {e}")
             return ""
-
     def _save_to_db(self, article, rationale):
         if not self.db_url: return
         try:

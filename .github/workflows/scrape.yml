@@ -2,7 +2,7 @@ name: Scrape to Supabase
 
 on:
   schedule:
-    - cron: '*/30 * * * *' # Recommended: Every 30 mins (5 mins is often overkill/rate-limited)
+    - cron: '17,47 * * * *' # Recommended: Every 30 mins (5 mins is often overkill/rate-limited)
   workflow_dispatch:       # Allows manual trigger button
 
 jobs:
