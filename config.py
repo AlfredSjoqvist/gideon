@@ -3,32 +3,32 @@ RSS_FEEDS = [
     {
         "source": "Inoreader",
         "label": "AI News",
-        "link": "https://www.inoreader.com/stream/user/1003596242/tag/AI%20News"
+        "link": "https://www.inoreader.com/stream/user/1003596242/tag/AI%20News?n=100"
     },
     {
         "source": "Inoreader",
         "label": "Biotech",
-        "link": "https://www.inoreader.com/stream/user/1003596242/tag/Biotech%2FPharma"
+        "link": "https://www.inoreader.com/stream/user/1003596242/tag/Biotech%2FPharma?n=100"
     },
     {
         "source": "Inoreader",
         "label": "Tech",
-        "link": "https://www.inoreader.com/stream/user/1003596242/tag/General%20Tech"
+        "link": "https://www.inoreader.com/stream/user/1003596242/tag/General%20Tech?n=100"
     },
     {
         "source": "Inoreader",
         "label": "World News",
-        "link": "https://www.inoreader.com/stream/user/1003596242/tag/World%20News"
+        "link": "https://www.inoreader.com/stream/user/1003596242/tag/World%20News?n=100"
     },
     {
         "source": "Inoreader",
         "label": "Reddit AI",
-        "link": "https://www.inoreader.com/stream/user/1003596242/tag/Reddit%20AI"
+        "link": "https://www.inoreader.com/stream/user/1003596242/tag/Reddit%20AI?n=100"
     },   
     {
         "source": "Inoreader",
         "label": "Sverige",
-        "link": "https://www.inoreader.com/stream/user/1003596242/tag/RSS%20Sverige"
+        "link": "https://www.inoreader.com/stream/user/1003596242/tag/RSS%20Sverige?n=100"
     },    
     {
         "source": "HackerNews",
