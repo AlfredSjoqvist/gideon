@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GIDEON | Intelligence Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; background-color: #0f172a; color: #e2e8f0; }
+        .glass { background: rgba(30, 41, 59, 0.7); backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.1); }
+        .prose h1, .prose h2, .prose h3 { color: #38bdf8; font-weight: 700; margin-top: 2.5rem; margin-bottom: 1.25rem; }
+        .prose h2 { border-left: 4px solid #38bdf8; padding-left: 1rem; font-size: 1.6rem; }
+        .prose p { margin-bottom: 1.5rem; line-height: 1.8; font-size: 1.15rem; color: #cbd5e1; }
+        .prose strong { color: #f8fafc; }
+        .prose a { color: #38bdf8; text-decoration: underline; font-weight: 500; }
+        .prose hr { border: 0; border-top: 1px solid rgba(255, 255, 255, 0.1); margin: 3rem 0; }
+        .mono { font-family: 'JetBrains Mono', monospace; }
+        #drop-zone.dragover { background: rgba(56, 189, 248, 0.1); border-color: #38bdf8; }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col lg:flex-row">
+
+    <aside class="lg:w-80 w-full glass p-8 flex flex-col gap-8 border-b lg:border-b-0 lg:border-r border-slate-700">
+        <div>
+            <h1 class="text-2xl font-bold tracking-tighter text-sky-400 mono italic">GIDEON_INTEL</h1>
+            <p class="text-xs text-slate-500 mono mt-1 uppercase tracking-widest">Stage 3 Synthesis Viewer</p>
+        </div>
+
+        <div id="drop-zone" class="border-2 border-dashed border-slate-700 rounded-xl p-6 text-center transition-all cursor-pointer hover:border-slate-500">
+            <input type="file" id="file-input" class="hidden" accept=".json">
+            <p class="text-xs text-slate-400 mono uppercase mb-2">Load Intelligence</p>
+            <label for="file-input" class="cursor-pointer text-sky-400 hover:text-sky-300 text-sm font-bold">Choose JSON</label>
+            <p class="text-[10px] text-slate-600 mt-2 italic">or drag and drop</p>
+        </div>
+
+        <div class="space-y-4">
+            <div class="p-4 rounded-lg bg-slate-900/50 border border-slate-800">
+                <p class="text-xs text-slate-500 uppercase font-bold mono">Briefing ID</p>
+                <p id="ui-timestamp" class="text-sm font-medium text-slate-300 mono mt-1">NO_DATA_LOADED</p>
+            </div>
+            <div class="p-4 rounded-lg bg-slate-900/50 border border-slate-800">
+                <p class="text-xs text-slate-500 uppercase font-bold mono">Inference Cost</p>
+                <p id="ui-cost" class="text-sm font-medium text-emerald-400 mono mt-1">$0.0000</p>
+            </div>
+            <div class="p-4 rounded-lg bg-sky-500/5 border border-sky-500/20">
+                <p class="text-xs text-sky-500 uppercase font-bold mono">Target Protocol</p>
+                <p class="text-sm font-medium text-sky-200 mt-1">25yo M.Sc. SWE (SE)</p>
+            </div>
+        </div>
+    </aside>
+
+    <main class="flex-1 overflow-y-auto">
+        <div id="content-container" class="max-w-4xl mx-auto px-8 py-12 lg:py-20 hidden">
+            <header class="mb-12">
+                <div class="inline-block px-3 py-1 rounded-full bg-sky-500/10 text-sky-400 text-xs font-bold mono mb-4 uppercase tracking-widest border border-sky-500/20">
+                    High Confidence Signal
+                </div>
+                <h2 id="briefing-title" class="text-4xl lg:text-5xl font-extrabold text-white tracking-tight leading-tight">
+                    Strategic Intelligence Synthesis
+                </h2>
+            </header>
+
+            <div id="briefing-body" class="prose prose-invert max-w-none"></div>
+        </div>
+
+        <div id="placeholder" class="h-full flex items-center justify-center text-slate-600 p-8">
+            <div class="text-center max-w-md">
+                <div class="mb-4 text-sky-500/20">
+                    <svg class="w-20 h-20 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                </div>
+                <h3 class="text-xl font-bold text-slate-400 italic">Waiting for Intelligence Data</h3>
+                <p class="text-sm mt-2">Ingest a Stage 3 Debug JSON file to begin synthesis rendering.</p>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        const fileInput = document.getElementById('file-input');
+        const dropZone = document.getElementById('drop-zone');
+
+        // File Selection
+        fileInput.addEventListener('change', (e) => handleFile(e.target.files[0]));
+
+        // Drag and Drop Logic
+        dropZone.addEventListener('dragover', (e) => { e.preventDefault(); dropZone.classList.add('dragover'); });
+        dropZone.addEventListener('dragleave', () => dropZone.classList.remove('dragover'));
+        dropZone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            dropZone.classList.remove('dragover');
+            handleFile(e.dataTransfer.files[0]);
+        });
+
+        function handleFile(file) {
+            if (!file || file.type !== "application/json") {
+                alert("Invalid format. Please load a valid GIDEON JSON file.");
+                return;
+            }
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const json = JSON.parse(e.target.result);
+                    renderBriefing(json);
+                } catch (err) {
+                    alert("Parsing Error: " + err.message);
+                }
+            };
+            reader.readAsText(file);
+        }
+
+        function renderBriefing(json) {
+            const container = document.getElementById('content-container');
+            const placeholder = document.getElementById('placeholder');
+            const body = document.getElementById('briefing-body');
+            
+            // Standard Gideon JSON paths
+            const resultMd = json.data.result || json.data.text || "";
+            const timestamp = json.timestamp || "UNKNOWN_EPOCH";
+            const cost = json.data.total_cost || 0;
+
+            // UI Updates
+            document.getElementById('ui-timestamp').innerText = timestamp;
+            document.getElementById('ui-cost').innerText = `$${parseFloat(cost).toFixed(4)}`;
+            
+            // Markdown Rendering
+            body.innerHTML = marked.parse(resultMd);
+
+            // Show UI
+            container.classList.remove('hidden');
+            placeholder.classList.add('hidden');
+            
+            // Scroll to top
+            document.querySelector('main').scrollTo(0, 0);
+        }
+    </script>
+</body>
+</html>

@@ -1,186 +1,248 @@
 import os
-import re
 import json
 import time
-import random
-import psycopg2
 import requests
-from collections import defaultdict
-from psycopg2.extras import RealDictCursor
 from dotenv import load_dotenv
-from google import genai
-from google.genai import types
-from tqdm import tqdm  # Loading bar
 
-# Import wrappers from your existing prompts2.py
+# --- IMPORTS FROM YOUR CORE LIBRARY ---
+from gideon_core import Corpus, Stage1Trial, DailyTrial, Article
+
+# --- IMPORT PROMPTS ---
 from prompts2 import (
     INDUSTRY_STRATEGIST_SYSTEM, 
     RESEARCH_FRONTIERSMAN_SYSTEM, 
     PRAGMATIC_ENGINEER_SYSTEM,
-    BASE_RANKING_PROMPT
+    CIVILIZATIONAL_ENGINEER_SYSTEM,
+    SWEDISH_INNOVATION_SCOUT_SYSTEM
 )
 
 load_dotenv()
 
-# --- CONFIG ---
+# --- CONFIGURATION ---
 DB_URL = os.getenv("DATABASE_URL")
-GEMINI_KEY = os.getenv("GEMINI_API_KEY")
-TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
-TELEGRAM_CHAT_ID = os.getenv("TELEGRAM_CHAT_ID")
-PUSHCUT_KEY = os.getenv("PUSHCUT_KEY")
+PUSHCUT_URL = os.getenv("PUSHCUT_TRIGGER_URL")
 
-WEIGHTS = {"engineering": 0.4, "industry": 0.4, "research": 0.2}
-BATCH_SIZE = 8
-MAX_RETRIES = 5
-client = genai.Client(api_key=GEMINI_KEY)
+def send_simple_pushcut(articles):
+    """Sends top 4 articles as notifications without AI Image gen."""
+    if not PUSHCUT_URL:
+        print("⚠️ Pushcut URL missing. Skipping notifications.")
+        return
 
-# --- UTILS ---
-def normalize_title(text):
-    if not text: return ""
-    text = re.sub(r'\[.*?\]', '', text) 
-    return re.sub(r'[^a-zA-Z0-9]', '', text).lower()
-
-def normalize_url(url):
-    if not url: return ""
-    url = url.lower().split('://')[-1].replace('www.', '')
-    return url.strip('/')
-
-def send_pushcut_alert(title, hook, link):
-    """Sends a direct-to-browser notification via Pushcut."""
-    # This URL points to your defined 'Gideon_Alert' in the app
-    url = f"https://api.pushcut.io/v1/notifications/Gideon_Alert"
+    print(f"\n🚀 Sending Notifications for Top {len(articles[:4])} Picks...")
     
-    headers = {"API-Key": PUSHCUT_KEY}
+    for art in articles[:4]:
+        score = art.metadata.get('ensemble_score', 0)
+        # Visual stars for the notification title
+        score_icon = "⭐⭐⭐" if score >= 2 else "⭐"
+        
+        # Try to find an existing image in metadata, else None
+        img_url = art.metadata.get('thumbnail') or art.metadata.get('image')
+        
+        # Rationale comes from the DailyTrial Stage 1 analysis
+        rationale = art.metadata.get('deep_analysis', '')[:300] + "..."
+
+        payload = {
+            "title": f"{score_icon} Gideon: {art.title}",
+            "text": rationale,
+            "image": img_url, # Optional, might be null
+            "defaultAction": {"url": art.link}
+        }
+        
+        try:
+            requests.post(PUSHCUT_URL, json=payload)
+            print(f"   🔔 Sent: {art.title[:40]}...")
+            time.sleep(0.5) # Slight delay to ensure delivery order
+        except Exception as e:
+            print(f"   ❌ Push failed: {e}")
+
+def run_stage1_job(query, judge_panel, winners_count, ai_model, run_name):
+    """Orchestrates a single Stage 1 trial run."""
+    print(f"\n🏃 Starting Stage 1 Job: [{run_name}]")
     
-    payload = {
-        "title": title,
-        "text": hook,
-        "defaultAction": {"url": link}, # Tapping the notification opens this URL
-    }
+    # 1. Populate Corpus from DB
+    corpus = Corpus()
+    corpus.fetch_from_db(DB_URL, query)
     
+    if not corpus.articles:
+        print(f"   ⚠️ No articles found for [{run_name}]. Skipping.")
+        return None
+
+    # 2. Initialize Trial
+    trial = Stage1Trial(winners_count=winners_count, judge_configs=judge_panel)
+    
+    # 3. Convene Judges
+    # Note: Depending on your exact Stage1Trial implementation, 
+    # run .convene() and capture the resulting corpus
     try:
-        response = requests.post(url, json=payload, headers=headers)
-        response.raise_for_status()
+        # Assuming convene returns (corpus, data, cost) based on previous context
+        result = trial.convene(corpus, ai_model=ai_model)
+        if isinstance(result, tuple):
+            return result[0] # Return just the corpus of winners
+        return result
     except Exception as e:
-        print(f"❌ Pushcut Error: {e}")
-
-# --- CORE LOGIC ---
-def get_clean_articles():
-    print("--- 📜 Fetching AI Articles ---")
-    conn = psycopg2.connect(DB_URL)
-    cur = conn.cursor(cursor_factory=RealDictCursor)
-    query = """
-        SELECT link, title, summary, metadata
-        FROM articles 
-        WHERE source ILIKE 'Inoreader%' 
-          AND feed_label = 'AI'
-          AND published >= now() - interval '24 hours'
-    """
-    cur.execute(query)
-    rows = cur.fetchall()
-    cur.close()
-    conn.close()
-    
-    cleaned = [{"link": r['link'], "title": r['title'], "summary": r['summary'][:1500]} for r in rows]
-    print(f"Found {len(cleaned)} AI articles.")
-    return cleaned
-
-def create_constrained_batches(articles):
-    deck = articles * 3
-    random.shuffle(deck)
-    shuffled_order = []
-    while deck:
-        for i in range(len(deck)):
-            candidate = deck[i]
-            recent_links = [item['link'] for item in shuffled_order[-8:]]
-            if candidate['link'] not in recent_links:
-                shuffled_order.append(deck.pop(i))
-                break
-        else:
-            shuffled_order.append(deck.pop(0))
-    return [shuffled_order[i:i + BATCH_SIZE] for i in range(0, len(shuffled_order), BATCH_SIZE)]
-
-def run_gemini_on_batches(batches, expert_name, system_instruction):
-    print(f"--- 🤖 Expert: {expert_name.upper()} starting ---")
-    results = []
-    
-    for i, batch in enumerate(tqdm(batches, desc=f"Processing {expert_name}")):
-        articles_text = "".join([f"ID: {idx}\nTitle: {art['title']}\nLink: {art['link']}\nSummary: {art['summary']}\n\n" 
-                                 for idx, art in enumerate(batch, 1)])
-        prompt = BASE_RANKING_PROMPT.format(articles_text=articles_text)
-        
-        success, attempts = False, 0
-        while attempts < MAX_RETRIES and not success:
-            try:
-                response = client.models.generate_content(
-                    model="gemini-2.0-flash",
-                    config=types.GenerateContentConfig(
-                        system_instruction=system_instruction,
-                        response_mime_type="application/json",
-                    ),
-                    contents=prompt
-                )
-                clean_json = re.sub(r'[\x00-\x1F\x7F]', '', response.text)
-                results.append(json.loads(clean_json))
-                success = True
-            except Exception as e:
-                attempts += 1
-                wait = attempts * 5
-                time.sleep(wait)
-        
-    return results
-
-def process_and_rank(expert_raw_results):
-    print("--- 📊 De-duplicating & Scoring ---")
-    master_store = {}
-
-    for role, batch_list in expert_raw_results.items():
-        for batch_data in batch_list:
-            for entry in batch_data:
-                t_key, u_key = normalize_title(entry.get('title')), normalize_url(entry.get('link'))
-                
-                existing_key = t_key if t_key in master_store else next((k for k, v in master_store.items() if normalize_url(v['link']) == u_key), None)
-                
-                if existing_key:
-                    target = master_store[existing_key]
-                else:
-                    master_store[t_key] = {"link": entry.get('link'), "title": entry.get('title'), "raw_scores": {r: [] for r in WEIGHTS}}
-                    target = master_store[t_key]
-
-                if len(entry.get('title', '')) > len(target["title"]): target["title"] = entry.get('title')
-                target["raw_scores"][role].append(entry.get('score', 0))
-
-    ranked_list = []
-    for data in master_store.values():
-        scores = {r: (sum(data["raw_scores"][role]) / len(data["raw_scores"][role]) if data["raw_scores"][role] else 0) for r in WEIGHTS}
-        data["combined_score"] = round(sum(scores[r] * WEIGHTS[r] for r in WEIGHTS), 2)
-        ranked_list.append(data)
-
-    ranked_list.sort(key=lambda x: x['combined_score'], reverse=True)
-    return ranked_list
+        print(f"   ❌ Stage 1 Error: {e}")
+        return None
 
 def main():
-    articles = get_clean_articles()
-    if not articles:
-        send_telegram_msg("⚠️ No AI articles found in the last 24h.")
+    if not DB_URL:
+        print("❌ Error: DATABASE_URL not set.")
         return
-    
-    batches = create_constrained_batches(articles)
-    experts = [("engineering", PRAGMATIC_ENGINEER_SYSTEM), ("industry", INDUSTRY_STRATEGIST_SYSTEM), ("research", RESEARCH_FRONTIERSMAN_SYSTEM)]
-    
-    all_expert_output = {name: run_gemini_on_batches(batches, name, sys) for name, sys in experts}
-    final_ranked = process_and_rank(all_expert_output)
 
-    # --- TELEGRAM TOP 5 ---
-    top_5 = final_ranked[:5]
-    for art in top_5:
-        send_pushcut_alert(
-            title=art['title'],
-            hook="hey take a look...", # Snappy text for lockscreen
-            link=art['link']
-        )
-        time.sleep(1) # Small delay to ensure they arrive in order
-    print("✅ Pipeline complete. Top 5 sent to Pushcut.")
+    print("="*60)
+    print(f"🚀 GIDEON PIPELINE STARTED AT {time.strftime('%Y-%m-%d %H:%M:%S')}")
+    print("="*60)
+
+    # --- PART 1: GATHER CANDIDATES (Stage 1 Trials) ---
+    MASTER_CORPUS = Corpus()
+    STAGE_1_TOTAL_COST = 0.0
+    
+    # Define your specific queries and personas here
+    jobs = [
+        {
+            "run_name": "reddit_ai_top",
+            "query": """
+                SELECT link, title, summary, published, source, feed_label, metadata, scraped_at
+                FROM articles 
+                WHERE source ILIKE 'Inoreader%' 
+                  AND feed_label = 'Reddit AI'
+                  AND published >= now() - interval '12 hours'
+            """,
+            "judge_panel": [{"name": "Pragmatic Engineer", "prompt": PRAGMATIC_ENGINEER_SYSTEM, "weight": 1.0}],
+            "winners_count": 3,
+            "ai_model": "gemini-3-flash-preview"
+        },
+        {
+            "run_name": "general_ai_engineering",
+            "query": """
+                SELECT link, title, summary, published, source, feed_label, metadata, scraped_at
+                FROM articles 
+                WHERE source ILIKE 'Inoreader%' 
+                  AND feed_label = 'AI News'
+                  AND published >= now() - interval '12 hours'
+            """,
+            "judge_panel": [
+                {"name": "Industry Expert", "prompt": INDUSTRY_STRATEGIST_SYSTEM, "weight": 0.5},
+                {"name": "Pragmatic Engineer", "prompt": PRAGMATIC_ENGINEER_SYSTEM, "weight": 0.5}
+            ],
+            "winners_count": 3,
+            "ai_model": "gemini-3-flash-preview"
+        },
+        {
+            "run_name": "geopolitical",
+            "query": """
+                SELECT link, title, summary, published, source, feed_label, metadata, scraped_at
+                FROM articles 
+                WHERE source ILIKE 'Inoreader%' 
+                  AND feed_label = 'World News'
+                  AND published >= now() - interval '12 hours'
+            """,
+            "judge_panel": [{"name": "Civilizational Expert", "prompt": CIVILIZATIONAL_ENGINEER_SYSTEM, "weight": 1.0}],
+            "winners_count": 3,
+            "ai_model": "gemini-2.0-flash"
+        },
+        {
+            "run_name": "general_tech",
+            "query": """
+                SELECT link, title, summary, published, source, feed_label, metadata, scraped_at
+                FROM articles 
+                WHERE source ILIKE 'Inoreader%' 
+                  AND feed_label = 'Tech'
+                  AND published >= now() - interval '12 hours'
+            """,
+            "judge_panel": [{"name": "Civilizational Expert", "prompt": CIVILIZATIONAL_ENGINEER_SYSTEM, "weight": 1.0}],
+            "winners_count": 2,
+            "ai_model": "gemini-2.0-flash"
+        },
+        {
+            "run_name": "research_papers",
+            "query": """
+                SELECT link, title, summary, published, source, feed_label, metadata, scraped_at
+                FROM articles 
+                WHERE source ILIKE 'ArXiv%' 
+                  AND published >= now() - interval '12 hours'
+            """,
+            "judge_panel": [{"name": "Research Frontiersman", "prompt": RESEARCH_FRONTIERSMAN_SYSTEM, "weight": 1.0}],
+            "winners_count": 3,
+            "ai_model": "gemini-2.0-flash"
+        },
+        {
+            "run_name": "hackernews",
+            "query": """
+                SELECT link, title, summary, published, source, feed_label, metadata, scraped_at
+                FROM articles 
+                WHERE source ILIKE 'HackerNews%' 
+                  AND published >= now() - interval '12 hours'
+            """,
+            "judge_panel": [{"name": "Pragmatic Engineer", "prompt": PRAGMATIC_ENGINEER_SYSTEM, "weight": 1.0}],
+            "winners_count": 2,
+            "ai_model": "gemini-3-flash-preview"
+        },
+        {
+            "run_name": "sweden",
+            "query": """
+                SELECT link, title, summary, published, source, feed_label, metadata, scraped_at
+                FROM articles 
+                WHERE source ILIKE 'Inoreader%' 
+                  AND feed_label = 'Sverige'
+                  AND published >= now() - interval '12 hours'
+            """,
+            "judge_panel": [{"name": "Swedish Innovator", "prompt": SWEDISH_INNOVATION_SCOUT_SYSTEM, "weight": 1.0}],
+            "winners_count": 3,
+            "ai_model": "gemini-2.0-flash"
+        }
+    ]
+
+    for job in jobs:
+        winner_corpus = run_stage1_job(**job)
+        if winner_corpus:
+            for art in winner_corpus.articles:
+                MASTER_CORPUS.add_article(art)
+            print(f"   ✅ Added {len(winner_corpus.articles)} articles to Master Corpus.")
+        time.sleep(1) # Rate limit safety
+
+    total_candidates = len(MASTER_CORPUS.articles)
+    print(f"\n📦 Master Corpus Assembled: {total_candidates} Articles")
+    print(f"💰 Stage 1 Cost: ${STAGE_1_TOTAL_COST:.4f}")
+    
+    if total_candidates == 0:
+        print("❌ No candidates found. Aborting DailyTrial.")
+        return
+
+    # --- PART 2: THE DAILY TRIAL (Deep Analysis & Voting) ---
+    print("\n" + "-"*40)
+    print("⚖️  INITIATING DAILY TRIAL (Deep Analysis & Voting)")
+    print("-" * 40)
+
+    daily = DailyTrial(db_url=DB_URL)
+
+    # A. Scrape & Analyze (Gemini 3 Pro)
+    # This also saves individual article analysis to the 'important' table
+    daily.run_stage_1_analysis(MASTER_CORPUS)
+
+    # B. The Board Vote (Gemini + Claude Ensembe)
+    # Returns top 6 articles with scores
+    top_picks = daily.run_stage_2_ensemble()
+
+    # --- PART 3: NOTIFICATIONS ---
+    if top_picks:
+        send_simple_pushcut(top_picks)
+    else:
+        print("⚠️ No top picks returned from ensemble.")
+
+    # --- PART 4: NEWSLETTER GENERATION ---
+    # Generates the 5-min read and saves it to 'blog_entries' DB
+    daily.run_stage_3_newsletter()
+
+    # --- FINAL TALLY ---
+    GRAND_TOTAL = STAGE_1_TOTAL_COST + daily.total_cost
+
+    print("\n" + "="*60)
+    print(f"🏁 PIPELINE COMPLETE")
+    print(f"   Stage 1 (Filtering):  ${STAGE_1_TOTAL_COST:.4f}")
+    print(f"   Stage 2/3 (Daily):    ${daily.total_cost:.4f}")
+    print(f"   ------------------------------")
+    print(f"   💰 GRAND TOTAL:       ${GRAND_TOTAL:.4f}")
+    print("="*60)
 
 if __name__ == "__main__":
     main()

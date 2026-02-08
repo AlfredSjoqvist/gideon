@@ -155,7 +155,7 @@ if __name__ == "__main__":
             """,
             "judge_panel": [{"name": "Research Frontiersman", "prompt": RESEARCH_FRONTIERSMAN_SYSTEM, "weight": 1.0}],
             "winners_count": 3,
-            "ai_model": "gemini-3-flash-preview"
+            "ai_model": "gemini-2.0-flash"
         },
         {
             "run_name": "hackernews",
@@ -179,8 +179,8 @@ if __name__ == "__main__":
                   AND published >= now() - interval '24 hours'
             """,
             "judge_panel": [{"name": "Swedish Innovator", "prompt": SWEDISH_INNOVATION_SCOUT_SYSTEM, "weight": 1.0}],
-            "winners_count": 3,
-            "ai_model": "gemini-3-flash-preview"
+            "winners_count": 4,
+            "ai_model": "gemini-2.0-flash"
         }
     ]
 
