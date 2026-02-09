@@ -399,7 +399,7 @@ class DailyTrial:
                 print(f"      {stars} (Score {score}): {art.title[:50]}...")
         print(f"   💰 Cumulative Cost: ${self.total_cost:.4f}")
         return final_selection
-    
+
     def run_stage_3_newsletter(self):
         print("\n✍️  DailyTrial Stage 3: Writing The Daily Briefing...")
         
@@ -407,16 +407,42 @@ class DailyTrial:
             print("   ⚠️ No articles to write about.")
             return ""
 
-        # --- PREPARE CONTEXT (Done once) ---
-        context_block = ""
-        for art in self.summarized_articles:
-            score = art.metadata.get('ensemble_score', 0)
-            importance = "HIGH PRIORITY" if score >= 2 else "Reference"
-            context_block += f"[{importance}] TITLE: {art.title}\nLINK: {art.link}\nANALYSIS: {art.metadata.get('deep_analysis')}\n---\n"
+        # --- STEP A: ORGANIZE DATA (SPLIT INTO DEEP DIVE VS SECTOR WATCH) ---
+        deep_dive_text = ""
+        sector_watch_text = ""
         
-        # Prepare bibliography list text (Done once)
+        # 1. Sort articles by Ensemble Score (Highest first)
+        # This ensures the best stories are processed first
+        sorted_articles = sorted(
+            self.summarized_articles, 
+            key=lambda x: x.metadata.get('ensemble_score', 0), 
+            reverse=True
+        )
+
+        # 2. Distribute into buckets
+        for art in sorted_articles:
+            score = art.metadata.get('ensemble_score', 0)
+            # Create the text entry for the AI
+            entry = f"TITLE: {art.title}\nLINK: {art.link}\nSCORE: {score}\nANALYSIS: {art.metadata.get('deep_analysis')}\n---\n"
+            
+            # LOGIC: 
+            # If Score >= 2 (Unanimous or High Consensus) -> DEEP DIVE
+            # If Score < 2 (Split decision or low priority) -> SECTOR WATCH
+            if score >= 2:
+                deep_dive_text += entry
+            else:
+                sector_watch_text += entry
+
+        # 3. Fail-safe: If NO articles got a high score, force top 3 into Deep Dive
+        # otherwise the Deep Dive section would be empty.
+        if not deep_dive_text and sorted_articles:
+            print("   ⚠️ No high scores found. Forcing top 3 into Deep Dive.")
+            for art in sorted_articles[:3]:
+                deep_dive_text += f"TITLE: {art.title}\nLINK: {art.link}\nANALYSIS: {art.metadata.get('deep_analysis')}\n---\n"
+
+        # Prepare bibliography list text (Done once for all articles)
         articles_list_text = ""
-        for art in self.summarized_articles:
+        for art in sorted_articles:
             articles_list_text += f"- Title: {art.title}\n  URL: {art.link}\n\n"
 
         today_str = datetime.now().strftime("%B %d, %Y")
@@ -432,7 +458,12 @@ class DailyTrial:
                 # 1. Main Newsletter Call
                 body_resp = self.gemini_client.models.generate_content(
                     model="gemini-3-pro-preview",
-                    contents=DAILY_NEWSLETTER_PROMPT_TEMPLATE.format(date=today_str, context_block=context_block),
+                    # UPDATED: We now pass the specific blocks to the prompt template
+                    contents=DAILY_NEWSLETTER_PROMPT_TEMPLATE.format(
+                        date=today_str, 
+                        deep_dive_block=deep_dive_text, 
+                        context_block=sector_watch_text
+                    ),
                     config=types.GenerateContentConfig(
                         system_instruction=formatted_system_prompt,
                         temperature=0.7,
@@ -453,7 +484,7 @@ class DailyTrial:
                 markdown_bib = bib_resp.text.strip()
 
                 # 3. Combine & Save
-                final_content = f"{markdown_body}\n\n---\n\n# References\n\n{markdown_bib}"
+                final_content = f"{markdown_body}\n\n---\n\n## Reference Feed\n\n{markdown_bib}"
                 
                 self._save_blog_entry(final_content)
                 print(f"   ✅ Blog entry generated ({len(final_content)} chars)")
@@ -468,7 +499,7 @@ class DailyTrial:
                 else:
                     print("   ❌ All 5 attempts failed. Giving up.")
                     return ""
-    
+
     def _save_to_db(self, article, rationale):
         if not self.db_url: return
         try:

@@ -5,13 +5,17 @@ from psycopg2.extras import RealDictCursor
 from dotenv import load_dotenv
 
 # --- IMPORT YOUR CORE LOGIC ---
-# Ensure gideon_core.py has your latest DailyTrial class changes
 from gideon_core import DailyTrial, Article 
 
 load_dotenv()
 
 # --- CONFIGURATION ---
 DB_URL = os.getenv("DATABASE_URL")
+
+# --- NEW GLOBAL FLAG ---
+# Set to True to actually run the expensive Stage 2 voting logic.
+# Set to False to mock scores and just test the formatting (Free).
+FORCE_RUN_STAGE_2 = True
 
 def debug_newsletter_generation():
     if not DB_URL:
@@ -23,7 +27,6 @@ def debug_newsletter_generation():
     cur = conn.cursor(cursor_factory=RealDictCursor)
     
     # 1. Fetch articles from 'important' table (Last 24h)
-    # We need articles that have 'deep_analysis' in metadata, as that's what the newsletter reads.
     query = """
         SELECT link, title, summary, published, source, feed_label, metadata 
         FROM important 
@@ -36,13 +39,11 @@ def debug_newsletter_generation():
     
     if not rows:
         print("❌ No articles found in DB from the last 24 hours.")
-        print("   (Run the main pipeline first to populate the DB)")
         return
 
     print(f"✅ Found {len(rows)} articles in the database.")
 
     # 2. Re-construct Article Objects
-    # The newsletter generator expects a list of Article objects with metadata populated.
     reconstructed_articles = []
     for r in rows:
         art = Article(
@@ -52,11 +53,10 @@ def debug_newsletter_generation():
             published=r['published'],
             source=r['source'],
             feed_label=r['feed_label'],
-            metadata=r['metadata'], # Crucial: Contains 'deep_analysis' and 'ensemble_score'
+            metadata=r['metadata'], 
             scraped_at=None 
         )
         
-        # Validation: Check if deep_analysis exists
         if not art.metadata.get('deep_analysis'):
             print(f"   ⚠️ Warning: Article '{art.title[:20]}...' has no deep_analysis. Skipping.")
             continue
@@ -64,19 +64,33 @@ def debug_newsletter_generation():
         reconstructed_articles.append(art)
 
     if not reconstructed_articles:
-        print("❌ No articles had 'deep_analysis' data. Cannot generate newsletter.")
+        print("❌ No valid articles found.")
         return
 
     print(f"✅ Loaded {len(reconstructed_articles)} valid articles for processing.")
 
-    # 3. Initialize DailyTrial (Mocking the pipeline state)
+    # 3. Initialize DailyTrial
     print("\n🧪 Initializing DailyTrial for Stage 3 Debugging...")
     daily = DailyTrial(db_url=DB_URL)
-    
-    # Inject the data manually
     daily.summarized_articles = reconstructed_articles
 
-    # 4. RUN STAGE 3 ONLY
+    # --- CONDITIONAL STAGE 2 EXECUTION ---
+    if FORCE_RUN_STAGE_2:
+        print("\n🗳️  FORCE_RUN_STAGE_2 is TRUE. Running actual voting ensemble (Costs Money)...")
+        # This updates the metadata['ensemble_score'] on the articles in daily.summarized_articles
+        # AND saves the results to the DB (assuming you added the fix to gideon_core.py)
+        daily.run_stage_2_ensemble()
+    else:
+        print("\n🔧 FORCE_RUN_STAGE_2 is FALSE. Injecting MOCK scores for free formatting test...")
+        for i, art in enumerate(daily.summarized_articles):
+            # Mock Logic: First 4 get high score, rest get low score
+            if i < 4:
+                art.metadata['ensemble_score'] = 3
+            else:
+                art.metadata['ensemble_score'] = 1
+    # -------------------------------------
+
+    # 4. RUN STAGE 3 (Newsletter Generation)
     start_time = time.time()
     html_output = daily.run_stage_3_newsletter()
     elapsed = time.time() - start_time
@@ -100,7 +114,6 @@ def debug_newsletter_generation():
         print(html_output[-200:])
         print("="*50)
         
-        # Check for common formatting errors
         if word_count < 1500:
             print("⚠️ WARNING: Word count is low (< 1500). Check prompt constraints.")
     else:

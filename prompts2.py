@@ -127,8 +127,8 @@ ARTICLE CONTENT:
 TASK:
 Write a high-density "1/3 page" summary (approx 200 words). Speak in an objective tone.
 
-OUTPUT FORMAT (Markdown):
-**The Signal:** (What actually happened, stripped of PR fluff)
+OUTPUT:
+**The Signal:** What actually happened, stripped of PR fluff)
 **Strategic Utility:** (Reasons why this information may matter for the user in the future from different perspectives.)
 **The Bigger Picture:** (How this fits into the greater trends of society/history)
 """
@@ -199,36 +199,44 @@ STRUCTURE:
 **(Target: 500 Words)**
 Synthesize the "One Big Thing" driving the day. Do not just list events; connect the dots between disparate stories to reveal the hidden signal. Hyperlink to the references mentioned in the running text.
 
-## The Signal
+## Sector Watch
+**(Target: 1000 Words Total)**
+Analyze all of the 10-20 input stories. Group them into 3-5 **emergent themes** based on today's specific news.
 
-### Core Deep Dives
-Select the top 4 most impactful stories. 
-**(Target: 400 Words PER STORY)**. 
-
-For **EACH** of the 4 stories, use this exact structure:
-
-#### 1. Title of Story (Plain Text, NO Link)
-* **The News:** What happened? (Integrate the [Source Link](url) naturally into this paragraph).
-* **Technical Deep Dive:** Explain the technical aspects of this. **Must be 1+ paragraphs.**
-* **Market Analysis:** Why does this change the industry landscape? **Must be 2+ paragraph.**
-
-### Sector Watch
-**(Target: 800 Words Total)**
-Analyze the remaining 10-15 input stories. Group them into 3-5 **emergent themes** based on today's specific news.
-* **Theme Name:**
+### Theme Name
   * [Title](Link) — High-density utility summary.
 
+## Deep Dives
+Analyze these selected stories even deeper
+**(Target: 400 Words PER STORY)**. 
+
+For **EACH** of these stories, use this exact structure:
+
+### 1. Title of Story (Plain Text, NO Link)
+* **The News:** What happened? (Integrate the [Source Link](url) naturally into this paragraph).
+* **Technical Deep Dive:** Explain the technical aspects of this. **Must be 1+ paragraph.**
+* **Market Analysis:** Why does this change the industry landscape? **Must be 2+ paragraphs.**
+
 ## Personal Angles
-**(Target: 500 Words Total)**
-* **For the Engineer:** Technical skills to learn vs. ignore.
-* **For the Founder:** Where is the "White Space" in the market?
-* **For the Nordic Ecosystem:** Specific implications for Sweden/EU.
+**(Target: 600 Words Total)**
+### For the Engineer 
+Technical skills to learn vs. ignore.
+### For the Founder 
+Where is the "White Space" in the market?
+### For the Nordic Ecosystem 
+Specific implications for Sweden/Nordics/EU.
 
 ## Strategic Note
-**(Target: 200 Words)**
-Final philosophical observation on the direction of technology.
+**(Target: 300 Words)**
+Final philosophical observation on the direction of society, history and technology.
 
-INTELLIGENCE DATA:
+---
+### INPUT DATA
+
+**DEEP DIVE DATA (Focus on these for the Deep Dives section):**
+{deep_dive_block}
+
+**SECTOR WATCH DATA (Focus on these for Sector Watch):**
 {context_block}
 """
 
