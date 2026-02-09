@@ -399,7 +399,7 @@ class DailyTrial:
                 print(f"      {stars} (Score {score}): {art.title[:50]}...")
         print(f"   💰 Cumulative Cost: ${self.total_cost:.4f}")
         return final_selection
-
+    
     def run_stage_3_newsletter(self):
         print("\n✍️  DailyTrial Stage 3: Writing The Daily Briefing...")
         
@@ -407,84 +407,68 @@ class DailyTrial:
             print("   ⚠️ No articles to write about.")
             return ""
 
-        # --- STEP A: GENERATE MAIN BODY ---
-        # 1. Prepare Context
+        # --- PREPARE CONTEXT (Done once) ---
         context_block = ""
         for art in self.summarized_articles:
             score = art.metadata.get('ensemble_score', 0)
             importance = "HIGH PRIORITY" if score >= 2 else "Reference"
             context_block += f"[{importance}] TITLE: {art.title}\nLINK: {art.link}\nANALYSIS: {art.metadata.get('deep_analysis')}\n---\n"
         
-        today_str = datetime.now().strftime("%Y-%m-%d")
+        # Prepare bibliography list text (Done once)
+        articles_list_text = ""
+        for art in self.summarized_articles:
+            articles_list_text += f"- Title: {art.title}\n  URL: {art.link}\n\n"
+
+        today_str = datetime.now().strftime("%B %d, %Y")
+        formatted_system_prompt = DAILY_NEWSLETTER_SYSTEM_PROMPT_TEMPLATE.format(date=today_str)
+
+        # --- RETRY LOOP ---
+        MAX_RETRIES = 5
         
-        try:
-            # Main Newsletter Call
-            print("   🤖 Generating Body Content...")
-            today_str = datetime.now().strftime("%B %d, %Y")
-
-            # Format the system prompt with today's date
-            formatted_system_prompt = DAILY_NEWSLETTER_SYSTEM_PROMPT_TEMPLATE.format(date=today_str)
-
-            # Pass it to the model
-            body_resp = self.gemini_client.models.generate_content(
-                model="gemini-3-pro-preview",
-                contents=DAILY_NEWSLETTER_PROMPT_TEMPLATE.format(date=today_str, context_block=context_block),
-                config=types.GenerateContentConfig(
-                    system_instruction=formatted_system_prompt,
-                    temperature=0.7,
-                    max_output_tokens=40000 
+        for attempt in range(1, MAX_RETRIES + 1):
+            try:
+                print(f"   🤖 Generating Body Content (Attempt {attempt}/{MAX_RETRIES})...")
+                
+                # 1. Main Newsletter Call
+                body_resp = self.gemini_client.models.generate_content(
+                    model="gemini-3-pro-preview",
+                    contents=DAILY_NEWSLETTER_PROMPT_TEMPLATE.format(date=today_str, context_block=context_block),
+                    config=types.GenerateContentConfig(
+                        system_instruction=formatted_system_prompt,
+                        temperature=0.7,
+                        max_output_tokens=40000 
+                    )
                 )
-            )
+                markdown_body = body_resp.text.strip()
 
-            first_body = body_resp.text.strip()
-
-            print("   🤖 Auditing Body Content...")
-
-            audit_resp = self.gemini_client.models.generate_content(
-                model="gemini-3-pro-preview",
-                contents=AUDITOR_USER_PROMPT.format(draft_content=first_body),
-                config=types.GenerateContentConfig(
-                    system_instruction=AUDITOR_SYSTEM_PROMPT,
-                    temperature=0.3,
-                    max_output_tokens=40000,
-                    tools=[types.Tool(google_search=types.GoogleSearch())], # <--- THE INTERNET ACCESS
+                # 2. Bibliography Call
+                print("   📚 Generating Clean Reference List...")
+                bib_resp = self.gemini_client.models.generate_content(
+                    model="gemini-3-pro-preview",
+                    contents=BIBLIOGRAPHY_PROMPT.format(articles_text=articles_list_text),
+                    config=types.GenerateContentConfig(
+                        temperature=0.3,
+                    )
                 )
-            )
+                markdown_bib = bib_resp.text.strip()
 
-            markdown_body = audit_resp.text.strip()
+                # 3. Combine & Save
+                final_content = f"{markdown_body}\n\n---\n\n## Reference Feed\n\n{markdown_bib}"
+                
+                self._save_blog_entry(final_content)
+                print(f"   ✅ Blog entry generated ({len(final_content)} chars)")
+                
+                return final_content # <--- SUCCESS! Exit function.
 
-            # --- STEP B: GENERATE BIBLIOGRAPHY ---
-            print("   📚 Generating Clean Reference List...")
-            
-            # Prepare simple list. We intentionally OMIT the DB source 
-            # so the AI is forced to look at the URL.
-            articles_list_text = ""
-            for art in self.summarized_articles:
-                articles_list_text += f"- Title: {art.title}\n  URL: {art.link}\n\n"
-
-            # Bibliography Call
-            bib_resp = self.gemini_client.models.generate_content(
-                model="gemini-3-pro-preview",
-                contents=BIBLIOGRAPHY_PROMPT.format(articles_text=articles_list_text),
-                config=types.GenerateContentConfig(
-                    temperature=0.3,
-                )
-            )
-            markdown_bib = bib_resp.text.strip()
-
-            # --- STEP C: COMBINE ---
-            final_content = f"{markdown_body}\n\n---\n\n# References\n\n{markdown_bib}"
-            
-            self._save_blog_entry(final_content)
-            print(f"   ✅ Blog entry generated ({len(final_content)} chars)")
-            return final_content
-
-        except Exception as e:
-            print(f"   ❌ Newsletter Generation Failed: {e}")
-            return ""
+            except Exception as e:
+                print(f"   ⚠️ Attempt {attempt} failed: {e}")
+                if attempt < MAX_RETRIES:
+                    print("   ⏳ Retrying in 5 seconds...")
+                    time.sleep(5)
+                else:
+                    print("   ❌ All 5 attempts failed. Giving up.")
+                    return ""
     
-
-
     def _save_to_db(self, article, rationale):
         if not self.db_url: return
         try:
