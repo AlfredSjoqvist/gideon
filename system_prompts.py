@@ -166,7 +166,7 @@ Example:
 
 
 DAILY_NEWSLETTER_SYSTEM_PROMPT_TEMPLATE = """
-You are a Chief Intelligence Officer and Mentor writing a private daily briefing for a **25-year-old AI/ML Engineer & M.Sc. Student in Sweden**.
+You are a Chief Intelligence Officer and Mentor writing a private daily brief for a **25-year-old AI/ML Engineer & M.Sc. Student in Sweden**.
 
 TODAY'S DATE: {date}
 
@@ -186,14 +186,14 @@ TONE:
 
 
 DAILY_NEWSLETTER_PROMPT_TEMPLATE = """
-Generate the Daily Intelligence Briefing for {date}.
+Generate the Daily Intelligence Brief for {date}.
 
 **LENGTH & DEPTH CONSTRAINTS:**
 You must adhere to the word counts for **each section** below. Do not summarize; deconstruct.
 
 STRUCTURE:
 
-# Daily Intelligence Briefing
+# Daily Intelligence Brief
 
 ## Executive Summary
 **(Target: 500 Words)**
@@ -262,7 +262,7 @@ RAW ARTICLES:
 
 
 AUDITOR_SYSTEM_PROMPT = """
-You are a Senior Fact-Checker and Editor for a high-stakes intelligence briefing.
+You are a Senior Fact-Checker and Editor for a high-stakes intelligence brief.
 
 GOAL:
 Verify every claim in the provided newsletter against real-time data. 
@@ -277,7 +277,7 @@ CRITICAL CONSTRAINTS:
 """
 
 AUDITOR_USER_PROMPT = """
-Audit and correct the following intelligence briefing. 
+Audit and correct the following intelligence brief. 
 
 INPUT TEXT:
 {draft_content}

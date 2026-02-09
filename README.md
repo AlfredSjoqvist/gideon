@@ -2,7 +2,7 @@
 
 [**View the Daily Intelligence Briefing**](https://alfredsjoqvist.github.io/gideon-300/)
 
-Gideon is an **agentic AI pipeline** designed to solve the information overload problem in the technology sector. It functions as an autonomous research analyst, running on a rigid schedule to ingest, analyze, rank, and synthesize thousands of daily data points into a high-density intelligence briefing.
+Gideon is an **Agentic AI Swarm** designed to solve the information overload problem in the technology sector, especially in AI/ML. It functions as an autonomous research analyst, running on a rigid schedule to ingest, analyze, rank, and synthesize thousands of daily data points into a high-density intelligence briefing.
 
 Unlike standard "summary bots" that simply shorten text, Gideon employs a **multi-stage consensus architecture**. Different AI agents (personas) critique news based on specific strategic frameworks before a "Board of Directors" (an ensemble of SOTA models) takes a final vote on what matters.
 
@@ -10,27 +10,31 @@ Unlike standard "summary bots" that simply shorten text, Gideon employs a **mult
 
 ### The Gideon Architecture
 
+![Agentic Reasoning Pipeline](UML-Gideon.png)
+
 The system is built as a **Linear Filtering Funnel**, reducing noise by 99% to extract the 1% of high-signal information.
 
-#### 1. Automated ETL & Normalization (Ingest)
+#### 1. Automated ETL & Normalization
 * **Infrastructure:** Runs on **GitHub Actions** via a scheduled cron job (Zero-infrastructure maintenance).
-* **Process:** A robust Python scraper (`ingest.py`) polls high-volume RSS streams (ArXiv, HackerNews, Reddit MachineLearning, Global News).
+* **Process:** A robust Python scraper (`ingest.py`) polls high-volume RSS streams (ArXiv, HackerNews, Reddit, Ars Technica, The Guardian, and many more).
 * **Data Handling:** It handles rate limiting, parses heterogeneous feed formats, normalizes metadata, and performs "upsert" operations into a **PostgreSQL** warehouse (Supabase) to ensure idempotency.
 
-#### 2. Agentic Reasoning (Stage 1: The Filter)
-Raw articles are batched and sent to specialized AI Agents defined in `main.py`. Each agent utilizes **Google Gemini 3.0 Flash** for high-speed, low-cost reasoning. They do not just "read"; they apply a strict rubric:
-* **The Pragmatic Engineer:** Filters HackerNews/Reddit for immediate technical utility, discarding hype.
-* **The Research Frontiersman:** Scans ArXiv for novel architectures, ignoring incremental papers.
-* **The Geopolitical Strategist:** Analyzes world news for second-order effects on the tech supply chain.
+#### 2. Agentic Filtering
+Raw articles are batched and sent to specialized AI Agents defined in `main.py` and `system_prompts.py`. Each agent utilizes **Gemini 2.0 Flash** or **Gemini 3.0 Flash**, depending on the traffic volume of the input feed, for high-speed, low-cost reasoning. They do not just "read"; they apply a strict rubric:
+* **Pragmatic Engineer:** Filters forums for immediate technical utility, discarding hype.
+* **Frontier Researcher:** Scans ArXiv for novel architectures, ignoring incremental papers.
+* **Industry Strategist:** Analyzes industry shifts to identify market signals relevant for long-term career planning and founding companies.
+* **Geopolitical Expert:** Analyzes world news for second-order effects on the tech supply chain.
+* **Swedish Innovation Scout:** Filters for Nordic ecosystem developments, local regulatory impacts, and startups emerging from the region.
 * *Result:* Only articles passing a weighted threshold advance to the next stage.
 
-#### 3. Ensemble Consensus (Stage 2: The Board of Directors)
-The survivors form a "Master Corpus." To mitigate the bias or hallucinations of a single LLM, Gideon convenes a **Multi-Model Board**:
-* **The Voters:** **Gemini 1.5 Pro** and **Claude 3 Opus** independently review the filtered candidates.
+#### 3. Ensembling (The Board of Directors)
+The survivors form a "Master Corpus." of 15-20 articles. To mitigate the bias of a single LLM, Gideon convenes a Dual-Model Board:
+* **The Voters:** **Gemini 3 Pro** and **Claude 4.6 Opus** independently review the filtered candidates.
 * **The Voting Protocol:** Each model votes on the stories based on "Long-term Civilizational Impact."
-* **Fuzzy Matching:** A custom algorithm resolves title discrepancies between the different models' outputs to calculate a unified "Ensemble Score." Articles with unanimous support are flagged for **Deep Dives**.
+* **Fuzzy Matching:** A custom algorithm resolves potential title discrepancies between the different models' outputs to calculate a unified "Ensemble Score." Articles with unanimous support are flagged for **Deep Dives**.
 
-#### 4. Synthesis & Delivery (Stage 3)
+#### 4. Daily Brief Generation
 The system separates content into *Deep Dives* (Score ≥ 2) and *Sector Watch* (Score < 2).
 * **Prompt Chaining:** A final context-aware prompt generates a structured Markdown briefing.
 * **Distribution:**
