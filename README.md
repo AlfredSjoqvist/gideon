@@ -1,6 +1,6 @@
-# Gideon: Autonomous Intelligence Pipeline
+# Gideon: Intelligence Collection Swarm
 
-[**View the Daily Intelligence Briefing**](https://alfredsjoqvist.github.io/gideon-300/)
+[**View Todays Intelligence Brief**](https://alfredsjoqvist.github.io/gideon-300/)
 
 Gideon is an **Agentic AI Swarm** designed to solve the information overload problem in the technology sector, especially in AI/ML. It functions as an autonomous research analyst, running on a rigid schedule to ingest, analyze, rank, and synthesize thousands of daily data points into a high-density intelligence briefing.
 
@@ -8,9 +8,11 @@ Unlike standard "summary bots" that simply shorten text, Gideon employs a **mult
 
 ---
 
-### The Gideon Architecture
+### Agentic Reasoning Pipeline
 
 ![Agentic Reasoning Pipeline](UML-Gideon.png)
+
+### Details
 
 The system is built as a **Linear Filtering Funnel**, reducing noise by 99% to extract the 1% of high-signal information.
 
