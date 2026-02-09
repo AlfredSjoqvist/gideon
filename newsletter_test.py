@@ -101,10 +101,6 @@ def debug_newsletter_generation():
         print("="*50)
         
         # Check for common formatting errors
-        if "```" in html_output:
-            print("⚠️ WARNING: Output contains Markdown code blocks (```).")
-        if not html_output.strip().startswith("<"):
-            print("⚠️ WARNING: Output does not start with an HTML tag.")
         if word_count < 1500:
             print("⚠️ WARNING: Word count is low (< 1500). Check prompt constraints.")
     else:

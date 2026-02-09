@@ -75,11 +75,14 @@ def send_simple_pushcut(articles):
     if not final_queue:
         print("⚠️ No articles qualified for notification.")
         return
+    
+    # --- SEND SUMMARY NOTIFICATION ---
+    send_daily_summary_notification(client)
 
     print(f"\n🚀 Sending {len(final_queue)} Notifications...")
     
     for art in final_queue:
-        title_text = f"GIDEON: {art.title}"
+        title_text = f"{art.title}"
         
         print(f"   ✨ Generating hook for: {art.title[:30]}...")
         raw_analysis = art.metadata.get('deep_analysis', '')
@@ -105,8 +108,6 @@ def send_simple_pushcut(articles):
         except Exception as e:
             print(f"      ❌ Push failed: {e}")
 
-    # --- SEND SUMMARY NOTIFICATION ---
-    send_daily_summary_notification(client)
 
 def send_daily_summary_notification(client):
     print("\n--- 📜 SENDING DAILY BRIEFING NOTIFICATION ---")
@@ -124,15 +125,15 @@ def send_daily_summary_notification(client):
             print("⚠️ No blog entry found for today. Skipping summary notification.")
             return
 
-        print("   ✅ Found daily briefing. Generating hook...")
+        print("✅ Found daily briefing. Generating hook...")
         content = row['content']
         hook_text = generate_notification_hook(client, "Daily Intelligence Briefing", content)
 
         payload = {
-            "title": "🚨 GIDEON: Daily Briefing", 
+            "title": "Daily Intelligence Briefing", 
             "text": hook_text,
             # No image for summary to be safe
-            "defaultAction": {"url": "http://www.google.com"} # Placeholder
+            "defaultAction": {"url": "https://alfredsjoqvist.github.io/gideon-300/"} # Placeholder
         }
 
         print(f"   📡 Sending Briefing to Pushcut...")
@@ -187,7 +188,7 @@ def main():
             "run_name": "reddit_ai_top",
             "query": "SELECT link, title, summary, published, source, feed_label, metadata, scraped_at FROM articles WHERE source ILIKE 'Inoreader%' AND feed_label = 'Reddit AI' AND published >= now() - interval '24 hours'",
             "judge_panel": [{"name": "Pragmatic Engineer", "prompt": PRAGMATIC_ENGINEER_SYSTEM, "weight": 1.0}],
-            "winners_count": 3,
+            "winners_count": 1,
             "ai_model": "gemini-3-flash-preview"
         },
         {
