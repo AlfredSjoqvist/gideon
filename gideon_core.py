@@ -453,7 +453,7 @@ class DailyTrial:
                 markdown_bib = bib_resp.text.strip()
 
                 # 3. Combine & Save
-                final_content = f"{markdown_body}\n\n---\n\n## Reference Feed\n\n{markdown_bib}"
+                final_content = f"{markdown_body}\n\n---\n\n# References\n\n{markdown_bib}"
                 
                 self._save_blog_entry(final_content)
                 print(f"   ✅ Blog entry generated ({len(final_content)} chars)")

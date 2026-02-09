@@ -3,11 +3,15 @@ name: Gideon Daily Pipeline
 on:
   schedule:
     - cron: '0 14 * * *'
-
   workflow_dispatch:
 
 jobs:
+  trigger-fresh-scrape:
+    uses: ./.github/workflows/scrape.yml
+    secrets: inherit
+
   run-gideon:
+    needs: trigger-fresh-scrape
     runs-on: ubuntu-latest
     
     steps:
@@ -27,12 +31,7 @@ jobs:
       - name: Run Gideon Pipeline
         run: python main.py
         env:
-          # Database
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
-          
-          # AI Models
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
-          
-          # Notifications
           PUSHCUT_TRIGGER_URL: ${{ secrets.PUSHCUT_TRIGGER_URL }}

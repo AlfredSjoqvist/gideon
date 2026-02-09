@@ -2,8 +2,9 @@ name: Scrape to Supabase
 
 on:
   schedule:
-    - cron: '17,47 * * * *' # Recommended: Every 30 mins (5 mins is often overkill/rate-limited)
-  workflow_dispatch:       # Allows manual trigger button
+    - cron: '17,47 * * * *'
+  workflow_dispatch:
+  workflow_call:
 
 jobs:
   scrape-to-cloud:
@@ -24,6 +25,5 @@ jobs:
 
       - name: Run Scraper
         env: 
-          # CRITICAL: This passes the secret from GitHub to your script
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
         run: python ingest.py

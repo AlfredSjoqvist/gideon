@@ -75,9 +75,6 @@ def send_simple_pushcut(articles):
     if not final_queue:
         print("⚠️ No articles qualified for notification.")
         return
-    
-    # --- SEND SUMMARY NOTIFICATION ---
-    send_daily_summary_notification(client)
 
     print(f"\n🚀 Sending {len(final_queue)} Notifications...")
     
@@ -107,6 +104,9 @@ def send_simple_pushcut(articles):
             time.sleep(2.0) # 2s delay for reliability
         except Exception as e:
             print(f"      ❌ Push failed: {e}")
+    
+    # --- SEND SUMMARY NOTIFICATION ---
+    send_daily_summary_notification(client)
 
 
 def send_daily_summary_notification(client):
