@@ -599,7 +599,7 @@ class IntelligencePipeline:
             body = _generate_body().strip()
             bib = _generate_bib().strip()
             
-            final_content = f"{body}\n\n---\n\n## Reference Feed\n\n{bib}"
+            final_content = f"{body}\n\n---\n\n#References\n\n{bib}"
             self.repo.save_blog_entry(final_content)
             
             print(f"   ✅ Briefing generated ({len(final_content)} chars)")

@@ -1,6 +1,6 @@
 # Gideon: An Intelligence Collection Swarm
 
-Gideon is an **Agentic AI Swarm** designed to solve the information overload problem in the technology sector, especially in AI/ML. It functions as an autonomous research analyst, running on a rigid schedule to ingest, analyze, rank, and synthesize thousands of daily data points into a high-density intelligence briefing [**which you can view by clicking here.**](https://alfredsjoqvist.github.io/gideon-300/)
+Gideon is an **Agentic AI Swarm** designed to solve the information overload problem in the technology sector, especially in AI/ML. It functions as an autonomous research analyst, running on a rigid schedule to ingest, analyze, rank, and synthesize thousands of daily data points into a high-density intelligence briefing, [**which you can view by clicking here.**](https://alfredsjoqvist.github.io/gideon-300/)
 
 Unlike standard "summary bots" that simply shorten text, Gideon employs a **multi-stage consensus architecture**. Different AI agents (personas) critique news based on specific strategic frameworks before a "Board of Directors" (an ensemble of SOTA models) takes a final vote on what matters.
 
