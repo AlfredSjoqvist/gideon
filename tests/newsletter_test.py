@@ -4,15 +4,15 @@ import psycopg2
 from psycopg2.extras import RealDictCursor
 from dotenv import load_dotenv
 
-# --- IMPORT YOUR CORE LOGIC ---
-from gideon_core import DailyTrial, Article 
+# --- IMPORT YOUR REFACTORED CORE LOGIC ---
+from gideon_core import IntelligencePipeline, Article 
 
 load_dotenv()
 
 # --- CONFIGURATION ---
 DB_URL = os.getenv("DATABASE_URL")
 
-# --- NEW GLOBAL FLAG ---
+# --- GLOBAL FLAG ---
 # Set to True to actually run the expensive Stage 2 voting logic.
 # Set to False to mock scores and just test the formatting (Free).
 FORCE_RUN_STAGE_2 = True
@@ -44,6 +44,7 @@ def debug_newsletter_generation():
     print(f"✅ Found {len(rows)} articles in the database.")
 
     # 2. Re-construct Article Objects
+    # The new dataclass structure in gideon_core handles this cleanly
     reconstructed_articles = []
     for r in rows:
         art = Article(
@@ -69,21 +70,22 @@ def debug_newsletter_generation():
 
     print(f"✅ Loaded {len(reconstructed_articles)} valid articles for processing.")
 
-    # 3. Initialize DailyTrial
-    print("\n🧪 Initializing DailyTrial for Stage 3 Debugging...")
-    daily = DailyTrial(db_url=DB_URL)
-    daily.summarized_articles = reconstructed_articles
+    # 3. Initialize IntelligencePipeline
+    print("\n🧪 Initializing IntelligencePipeline for Debugging...")
+    pipeline = IntelligencePipeline(db_url=DB_URL)
+    
+    # Inject the data manually since we aren't running Stage 1
+    pipeline.summarized_articles = reconstructed_articles
 
     # --- CONDITIONAL STAGE 2 EXECUTION ---
     if FORCE_RUN_STAGE_2:
-        print("\n🗳️  FORCE_RUN_STAGE_2 is TRUE. Running actual voting ensemble (Costs Money)...")
-        # This updates the metadata['ensemble_score'] on the articles in daily.summarized_articles
-        # AND saves the results to the DB (assuming you added the fix to gideon_core.py)
-        daily.run_stage_2_ensemble()
+        print("\n🗳️  FORCE_RUN_STAGE_2 is TRUE. Running actual Consensus Voting (Costs Money)...")
+        # This updates the metadata['ensemble_score'] and saves to DB
+        pipeline.run_consensus_voting()
     else:
         print("\n🔧 FORCE_RUN_STAGE_2 is FALSE. Injecting MOCK scores for free formatting test...")
-        for i, art in enumerate(daily.summarized_articles):
-            # Mock Logic: First 4 get high score, rest get low score
+        for i, art in enumerate(pipeline.summarized_articles):
+            # Mock Logic: First 4 get high score (Deep Dive), rest get low score (Sector Watch)
             if i < 4:
                 art.metadata['ensemble_score'] = 3
             else:
@@ -92,7 +94,7 @@ def debug_newsletter_generation():
 
     # 4. RUN STAGE 3 (Newsletter Generation)
     start_time = time.time()
-    html_output = daily.run_stage_3_newsletter()
+    html_output = pipeline.generate_newsletter()
     elapsed = time.time() - start_time
 
     # 5. Output Results

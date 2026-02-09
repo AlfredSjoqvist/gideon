@@ -34,6 +34,7 @@ from system_prompts import (
 # --- CONFIGURATION & CONSTANTS ---
 DEBUG_MODE = True
 DEBUG_FOLDER = "debug"
+SHOW_FULL_JSON_OUTPUT = False
 
 class ModelRegistry:
     """Centralized configuration for LLM models and pricing."""
