@@ -7,7 +7,7 @@ import datetime
 import feedparser
 import psycopg2
 from psycopg2.extras import Json
-from config import RSS_FEEDS
+from rss_config import RSS_FEEDS
 
 # Fetch the connection string from environment variables
 DB_URL = os.getenv("DATABASE_URL")

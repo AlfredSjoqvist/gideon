@@ -242,7 +242,7 @@ Final philosophical observation on the direction of society, history and technol
 
 
 
-# --- BIBLIOGRAPHY PROMPT ---
+
 BIBLIOGRAPHY_PROMPT = """
 You are a strict formatting engine.
 

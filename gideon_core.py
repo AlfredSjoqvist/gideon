@@ -3,104 +3,135 @@ import re
 import json
 import time
 import random
+import logging
 from datetime import datetime
+from dataclasses import dataclass, field
+from typing import List, Dict, Optional, Any, Tuple, Union
+from functools import wraps
+
 import psycopg2
 from psycopg2.extras import RealDictCursor, Json
+import trafilatura
+
+# AI Clients
 from google import genai
 from google.genai import types
-from prompts2 import (
+try: 
+    from anthropic import Anthropic
+except ImportError: 
+    Anthropic = None
+
+# Prompts
+from system_prompts import (
     BASE_RANKING_PROMPT,
     DAILY_NEWSLETTER_PROMPT_TEMPLATE,
     DAILY_SUMMARY_PROMPT_TEMPLATE,
     DAILY_VOTING_PROMPT_TEMPLATE,
     DAILY_NEWSLETTER_SYSTEM_PROMPT_TEMPLATE,
-    BIBLIOGRAPHY_PROMPT,
-    AUDITOR_SYSTEM_PROMPT,
-    AUDITOR_USER_PROMPT
+    BIBLIOGRAPHY_PROMPT
 )
-import trafilatura
-from google.genai.types import Tool, GenerateContentConfig, GoogleSearch
 
-try: from anthropic import Anthropic
-except ImportError: Anthropic = None
-
-# --- CONFIGURATION ---
+# --- CONFIGURATION & CONSTANTS ---
 DEBUG_MODE = True
 DEBUG_FOLDER = "debug"
-SHOW_FULL_JSON_OUTPUT = True
 
-PRICING = {
-    "gemini-3-pro-preview":        {"input": 2.00,  "output": 12.00},
-    "gemini-3-flash-preview":      {"input": 0.50,  "output": 3.00},
-    "gemini-2.0-flash":            {"input": 0.10,  "output": 0.40},
-    "claude-opus-4-6":             {"input": 5.00,  "output": 25.00},
-    "gemini-1.5-pro":              {"input": 3.50,  "output": 10.50}
-}
+class ModelRegistry:
+    """Centralized configuration for LLM models and pricing."""
+    GEMINI_REASONING = "gemini-3-pro-preview"
+    GEMINI_FAST = "gemini-3-flash-preview"
+    GEMINI_STABLE = "gemini-2.0-flash"
+    CLAUDE_OPUS = "claude-opus-4-6"
+    
+    PRICING = {
+        GEMINI_REASONING: {"input": 2.00, "output": 12.00},
+        GEMINI_FAST:      {"input": 0.50, "output": 3.00},
+        GEMINI_STABLE:    {"input": 0.10, "output": 0.40},
+        CLAUDE_OPUS:      {"input": 5.00, "output": 25.00},
+    }
 
-# --- HELPERS ---
-def _debug_dump(filename, data, description=""):
+# --- UTILITIES & DECORATORS ---
+
+def retry_policy(retries: int = 5, delay: int = 60, description: str = "Operation"):
+    """Decorator pattern for exponential backoff retries."""
+    def decorator(func):
+        @wraps(func)
+        def wrapper(*args, **kwargs):
+            for attempt in range(retries):
+                try:
+                    return func(*args, **kwargs)
+                except Exception as e:
+                    print(f"      ⚠️ {description} failed (Attempt {attempt+1}/{retries}). Error: {e}")
+                    if attempt < retries - 1:
+                        sleep_time = delay * (attempt + 1) # Exponential-ish
+                        print(f"      ⏳ Sleeping {sleep_time}s...")
+                        time.sleep(sleep_time)
+                    else:
+                        print(f"      ❌ {description} PERMANENTLY FAILED.")
+                        raise e
+        return wrapper
+    return decorator
+
+def debug_dump(filename: str, data: Any):
+    """Writes debug artifacts to disk for auditability."""
     if not DEBUG_MODE: return
     if not os.path.exists(DEBUG_FOLDER): os.makedirs(DEBUG_FOLDER)
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
     clean_name = re.sub(r'[^a-zA-Z0-9_-]', '', filename)
     filepath = os.path.join(DEBUG_FOLDER, f"{timestamp}_{clean_name}.json")
     with open(filepath, 'w', encoding='utf-8') as f:
-        json.dump({"timestamp": timestamp, "desc": description, "data": data}, f, indent=2, default=str)
+        json.dump({"timestamp": timestamp, "data": data}, f, indent=2, default=str)
 
-def api_retry(func, retries=5, delay=60, description="API Call"):
-    """Retries a function call 5 times with 60s delay on failure."""
-    for attempt in range(retries):
-        try:
-            return func()
-        except Exception as e:
-            print(f"      ⚠️ {description} failed (Attempt {attempt+1}/{retries}). Error: {e}")
-            if attempt < retries - 1:
-                print(f"      ⏳ Sleeping {delay}s before retry...")
-                time.sleep(delay)
-            else:
-                print(f"      ❌ {description} PERMANENTLY FAILED.")
-                raise e
+def normalize_url(u: str) -> str:
+    if not u: return ""
+    return u.lower().split('://')[-1].replace('www.', '').strip('/')
 
-def normalize_url(u):
-    return u.lower().split('://')[-1].replace('www.', '').strip('/') if u else ""
-
-def fuzzy_match_article(ret_title, ret_link, articles):
+def fuzzy_match_article(ret_title: str, ret_link: str, articles: List['Article']) -> int:
+    """Heuristic matching algorithm to correlate LLM output with Source Objects."""
     best_idx = -1
     best_score = 0.0
+    
     def clean(s): return re.sub(r'\W+', ' ', s or "").lower().strip()
+    
     ret_t_clean = clean(ret_title)
-    ret_l_clean = clean(ret_link)
-
+    
     for i, art in enumerate(articles):
         score = 0.0
         art_t_clean = clean(art.title)
-        art_l_clean = clean(art.link)
+        
+        # 1. Strong Link Match
         if ret_link and ret_link == art.link: return i
         if ret_link and (ret_link in art.link or art.link in ret_link): score += 0.8
+        
+        # 2. Token Set Intersection (Jaccard-ish)
         t1 = set(ret_t_clean.split())
         t2 = set(art_t_clean.split())
         if t1 and t2:
             jaccard = len(t1 & t2) / len(t1 | t2)
             score += jaccard
+            
         if score > best_score:
             best_score = score
             best_idx = i
+            
     if best_score > 0.3: return best_idx
     return -1
 
-# --- DATA STRUCTURES ---
+# --- DOMAIN ENTITIES ---
+
+@dataclass
 class Article:
-    def __init__(self, link=None, title=None, summary=None, published=None, source=None, feed_label=None, metadata=None, scraped_at=None):
-        self.link = link
-        self.title = title
-        self.summary = summary
-        self.published = published
-        self.source = source
-        self.feed_label = feed_label
-        self.metadata = metadata or {}
-        self.scraped_at = scraped_at
-    
-    def to_xml(self, anchor_id=""):
+    """Data Transfer Object representing a single intelligence item."""
+    link: str
+    title: str
+    summary: str
+    published: Any
+    source: str
+    feed_label: str
+    metadata: Dict = field(default_factory=dict)
+    scraped_at: Any = None
+
+    def to_xml_context(self, anchor_id: str = "") -> str:
+        """Serializes article to XML format for LLM context injection."""
         authors = self.metadata.get('authors', [])
         lines = [
             "<article>",
@@ -113,415 +144,466 @@ class Article:
         ]
         return "\n".join(line for line in lines if line)
 
-class Corpus:
-    def __init__(self):
-        self.articles = []
-    def fetch_from_db(self, db_url, query):
-        print("--- 📜 Fetching Articles from DB ---")
+class ArticleRepository:
+    """Data Access Layer for PostgreSQL/Supabase."""
+    def __init__(self, db_url: Optional[str] = None):
+        self.articles: List[Article] = []
+        self.db_url = db_url or os.getenv("DATABASE_URL")
+
+    def fetch_candidates(self, query: str):
+        print("--- 📜 Repository: Fetching Candidates ---")
+        if not self.db_url: return
+        
+        conn = None
         try:
-            conn = psycopg2.connect(db_url)
+            conn = psycopg2.connect(self.db_url)
             cur = conn.cursor(cursor_factory=RealDictCursor)
             cur.execute(query)
             rows = cur.fetchall()
-            self.articles = [Article(link=r.get('link'), title=r.get('title'), summary=r.get('summary')[:1500] if r.get('summary') else "", published=r.get('published'), source=r.get('source'), feed_label=r.get('feed_label'), metadata=r.get('metadata'), scraped_at=r.get('scraped_at')) for r in rows]
-            cur.close()
-            conn.close()
-            print(f"✅ Loaded {len(self.articles)} articles.")
+            
+            self.articles = [
+                Article(
+                    link=r.get('link'),
+                    title=r.get('title'),
+                    # Truncate summary to save context window tokens if needed
+                    summary=r.get('summary')[:1500] if r.get('summary') else "", 
+                    published=r.get('published'),
+                    source=r.get('source'),
+                    feed_label=r.get('feed_label'),
+                    metadata=r.get('metadata') or {},
+                    scraped_at=r.get('scraped_at')
+                ) for r in rows
+            ]
+            print(f"✅ Loaded {len(self.articles)} candidates.")
         except Exception as e:
-            print(f"❌ Database Error: {e}")
-    def add_article(self, article):
+            print(f"❌ Repository Error: {e}")
+        finally:
+            if conn: conn.close()
+
+    def add(self, article: Article):
         self.articles.append(article)
 
-# --- BATCHING ---
-class BatchingAlgorithm:
-    def shuffle(self, size): return list(range(size))
+    def upsert_analysis(self, article: Article, analysis: str):
+        """Updates the DB with the deep analysis content."""
+        if not self.db_url: return
+        try:
+            with psycopg2.connect(self.db_url) as conn:
+                with conn.cursor() as cur:
+                    # Create table if not exists (Idempotent)
+                    cur.execute('''CREATE TABLE IF NOT EXISTS important (link TEXT PRIMARY KEY, title TEXT, summary TEXT, published TIMESTAMP, source TEXT, feed_label TEXT, metadata JSONB, chosen_at TIMESTAMP, rationale TEXT);''')
+                    
+                    cur.execute("""
+                        INSERT INTO important (link, title, summary, published, source, feed_label, metadata, chosen_at, rationale) 
+                        VALUES (%s, %s, %s, %s, %s, %s, %s, NOW(), %s) 
+                        ON CONFLICT (link) DO UPDATE 
+                        SET rationale = EXCLUDED.rationale, metadata = EXCLUDED.metadata, chosen_at = NOW()
+                    """, (article.link, article.title, article.summary, article.published, article.source, article.feed_label, Json(article.metadata), analysis))
+        except Exception as e:
+            print(f"      ❌ DB Save Error: {e}")
 
-class ContextSort(BatchingAlgorithm):
-    def shuffle(self, corpus_size, batch_size):
-        deck = list(range(corpus_size)) * 3
-        random.shuffle(deck)
-        shuffled_order = []
-        while deck:
-            for i in range(len(deck)):
-                candidate = deck[i]
-                recent_items = shuffled_order[-batch_size:]
-                if candidate not in recent_items:
-                    shuffled_order.append(deck.pop(i))
-                    break
-            else:
-                shuffled_order.append(deck.pop(0))
-        return [shuffled_order[i:i + batch_size] for i in range(0, len(shuffled_order), batch_size)]
+    def save_blog_entry(self, content: str):
+        """Persists the final generated newsletter."""
+        if not self.db_url: return
+        try:
+            with psycopg2.connect(self.db_url) as conn:
+                with conn.cursor() as cur:
+                    cur.execute('''CREATE TABLE IF NOT EXISTS blog_entries (entry_date DATE PRIMARY KEY, content TEXT, created_at TIMESTAMP DEFAULT NOW());''')
+                    today = datetime.now().date()
+                    cur.execute("""
+                        INSERT INTO blog_entries (entry_date, content, created_at) 
+                        VALUES (%s, %s, NOW()) 
+                        ON CONFLICT (entry_date) DO UPDATE 
+                        SET content = EXCLUDED.content, created_at = NOW()
+                    """, (today, content))
+            print(f"   ✅ Newsletter persisted to DB for date: {datetime.now().date()}")
+        except Exception as e:
+            print(f"      ❌ Blog DB Error: {e}")
 
-class BatchDeck:
-    def __init__(self, corpus, batch_size, algorithm, base_prompt_template):
-        self.deck = []
-        batches_of_indices = algorithm.shuffle(len(corpus.articles), batch_size)
-        for batch_idx, indices in enumerate(batches_of_indices):
-            articles_xml = "\n\n".join([corpus.articles[idx].to_xml(str(i+1)) for i, idx in enumerate(indices)])
-            final_prompt = base_prompt_template.format(articles_text=articles_xml)
-            self.deck.append(final_prompt)
 
-# --- AI COMPONENTS ---
-class GeminiRunner:
-    def __init__(self, api_key, model_name):
+
+# --- AI INFRASTRUCTURE ---
+class GenerativeAIClient:
+    """Wrapper for Google GenAI SDK with cost tracking and error handling."""
+    def __init__(self, api_key: str, model_name: str):
         self.client = genai.Client(api_key=api_key)
         self.model = model_name
-        self.churn_cost = 0.0
+        self.session_cost = 0.0
 
-    def run(self, prompt, system_instruction, temperature=0.2):
-        config = types.GenerateContentConfig(system_instruction=system_instruction, response_mime_type="application/json", temperature=temperature)
+    @retry_policy(description="Gemini Generation")
+    def generate(self, prompt: str, system_instruction: str, temperature: float = 0.2) -> str:
+        config = types.GenerateContentConfig(
+            system_instruction=system_instruction, 
+            response_mime_type="application/json", 
+            temperature=temperature
+        )
         
-        # Wrapped call for retry
-        def _call():
-            response = self.client.models.generate_content(model=self.model, contents=prompt, config=config)
-            if response.usage_metadata:
-                in_tok = response.usage_metadata.prompt_token_count
-                out_tok = response.usage_metadata.candidates_token_count
-                rates = PRICING.get(self.model, {"input": 0, "output": 0})
-                cost = (in_tok / 1e6 * rates["input"]) + (out_tok / 1e6 * rates["output"])
-                self.churn_cost += cost
-            return response.text
+        response = self.client.models.generate_content(
+            model=self.model, 
+            contents=prompt, 
+            config=config
+        )
+        
+        # Token Accounting
+        if response.usage_metadata:
+            in_tok = response.usage_metadata.prompt_token_count
+            out_tok = response.usage_metadata.candidates_token_count
+            rates = ModelRegistry.PRICING.get(self.model, {"input": 0, "output": 0})
+            self.session_cost += (in_tok / 1e6 * rates["input"]) + (out_tok / 1e6 * rates["output"])
+            
+        return response.text
 
-        # Using api_retry
-        return api_retry(_call, description=f"Gemini {self.model} Run")
+class ContextBatcher:
+    """Logic for shuffling and batching articles to prevent position bias."""
+    @staticmethod
+    def create_batches(repository: ArticleRepository, batch_size: int, template: str) -> List[str]:
+        # Context Shuffling Algorithm
+        indices = list(range(len(repository.articles)))
+        deck = indices * 3
+        random.shuffle(deck)
+        
+        unique_batches = []
+        seen_combos = set()
+        
+        chunked = [deck[i:i + batch_size] for i in range(0, len(deck), batch_size)]
+        
+        prompts = []
+        for chunk in chunked:
+            # Dedup within batch
+            clean_chunk = list(set(chunk))
+            if tuple(sorted(clean_chunk)) in seen_combos: continue
+            seen_combos.add(tuple(sorted(clean_chunk)))
+            
+            xml_block = "\n\n".join([repository.articles[idx].to_xml_context(str(i+1)) for i, idx in enumerate(clean_chunk)])
+            prompts.append(template.format(articles_text=xml_block))
+            
+        return prompts
 
-class Judge:
-    def __init__(self, system_prompt, model_id, title):
+class HeuristicAgent:
+    """An AI Persona that applies specific heuristic criteria to rank articles."""
+    def __init__(self, name: str, system_prompt: str, model: str):
+        self.name = name
         self.system_prompt = system_prompt
-        self.model_id = model_id
-        self.title = title
-        self.bill = 0.0
+        self.model = model
+        self.cost_incurred = 0.0
 
-class Stage1Judge(Judge):
-    def verdict(self, batch_deck):
-        print(f"⚖️  {self.title} is deliberating...")
+    def evaluate_batch(self, batch_prompts: List[str]) -> Dict[str, Dict]:
+        print(f"⚖️  Agent [{self.name}] is deliberating...")
         api_key = os.getenv("GEMINI_API_KEY")
-        runner = GeminiRunner(api_key, self.model_id)
-        final_results = {}
-        for i, batch_prompt in enumerate(batch_deck.deck):
-            print(f"   ↳ Batch {i+1}/{len(batch_deck.deck)}...")
-            success = False
-            attempts = 0
-            while attempts < 3 and not success:
-                try:
-                    # runner.run handles its own 5x retry for API errors
-                    # This loop handles logical/parsing errors
-                    raw_text = runner.run(batch_prompt, self.system_prompt)
-                    if not raw_text: raise Exception("Empty response")
-                    clean_text = re.sub(r'```json|```', '', raw_text).strip()
-                    clean_text = re.sub(r'[\x00-\x1F\x7F]', '', clean_text)
-                    data = json.loads(clean_text)
-                    for item in data:
-                        link = item.get('link')
-                        if link:
-                            final_results[link] = {
-                                "judge": self.title,
-                                "title": item.get('title'),
-                                "score": item.get('score', 0),
-                                "rationale": item.get('rationale', 'N/A')
-                            }
-                    success = True
-                except Exception as e:
-                    attempts += 1
-                    time.sleep(attempts * 2)
-        self.bill += runner.churn_cost
-        print(f"   ✅ Finished. Cost: ${self.bill:.4f}")
-        return final_results
+        client = GenerativeAIClient(api_key, self.model)
+        
+        results = {}
+        
+        for i, prompt in enumerate(batch_prompts):
+            print(f"   ↳ Batch {i+1}/{len(batch_prompts)}...")
+            try:
+                raw_json = client.generate(prompt, self.system_prompt)
+                # Cleaning JSON markdown if present
+                clean_json = re.sub(r'```json|```', '', raw_json).strip()
+                data = json.loads(clean_json)
+                
+                for item in data:
+                    link = item.get('link')
+                    if link:
+                        results[link] = {
+                            "judge": self.name,
+                            "title": item.get('title'),
+                            "score": item.get('score', 0),
+                            "rationale": item.get('rationale', 'N/A')
+                        }
+            except Exception as e:
+                print(f"      ⚠️ parsing error: {e}")
 
-class Stage1Trial:
-    def __init__(self, winners_count, judge_configs):
-        self.winners_count = winners_count
-        self.judge_configs = judge_configs
+        self.cost_incurred += client.session_cost
+        print(f"   ✅ Agent Finished. Cost: ${self.cost_incurred:.4f}")
+        return results
 
-    def convene(self, corpus, ai_model):
-        print("\n--- 🏛️  Convening Stage 1 Trial ---")
-        batching_algo = ContextSort()
-        deck = BatchDeck(corpus, 8, batching_algo, BASE_RANKING_PROMPT)
+class FilteringPipeline:
+    """Orchestrates Stage 1: Reducing the noise using Heuristic Agents."""
+    def __init__(self, target_count: int, agent_configs: List[Dict]):
+        self.target_count = target_count
+        self.agent_configs = agent_configs
+
+    def execute(self, repository: ArticleRepository, default_model: str) -> Tuple[ArticleRepository, float]:
+        print("\n--- 🏛️  Executing Filtering Pipeline ---")
+        
+        # 1. Prepare Data
+        batches = ContextBatcher.create_batches(repository, 8, BASE_RANKING_PROMPT)
+        
+        # 2. Run Agents
         all_verdicts = {}
-        total_trial_cost = 0.0
-        for config in self.judge_configs:
-            judge = Stage1Judge(config["prompt"], ai_model, config["name"])
-            verdict = judge.verdict(deck)
-            all_verdicts[config["name"]] = verdict
-            total_trial_cost += judge.bill
-        print(f"💰 Trial Complete. Total Cost: ${total_trial_cost:.4f}")
+        total_cost = 0.0
+        
+        for config in self.agent_configs:
+            agent = HeuristicAgent(config["name"], config["prompt"], default_model)
+            verdicts = agent.evaluate_batch(batches)
+            all_verdicts[config["name"]] = verdicts
+            total_cost += agent.cost_incurred
+            
+        # 3. Aggregation & Weighted Scoring
         final_scores = {}
+        # Union of all links seen
         all_links = set().union(*[v.keys() for v in all_verdicts.values()])
-        detailed_debug = {}
+        
+        debug_map = {}
+        
         for link in all_links:
             weighted_sum = 0
             breakdown = {}
-            for config in self.judge_configs:
-                name = config["name"]
+            for config in self.agent_configs:
+                agent_name = config["name"]
                 weight = config["weight"]
-                raw_score = all_verdicts[name].get(link, {}).get('score', 0)
+                raw_score = all_verdicts[agent_name].get(link, {}).get('score', 0)
                 weighted_sum += (raw_score * weight)
-                breakdown[name] = raw_score
+                breakdown[agent_name] = raw_score
+            
             norm_link = normalize_url(link)
             final_scores[norm_link] = weighted_sum
-            detailed_debug[norm_link] = {"weighted": weighted_sum, "breakdown": breakdown, "orig_link": link}
-        sorted_candidates = sorted(final_scores.items(), key=lambda x: x[1], reverse=True)
-        top_links = [item[0] for item in sorted_candidates[:self.winners_count]]
-        winner_corpus = Corpus()
-        winner_json = []
-        print("\n🏆 Top Selections:")
-        for norm_link in top_links:
-            for art in corpus.articles:
+            debug_map[norm_link] = {"weighted": weighted_sum, "breakdown": breakdown}
+
+        # 4. Selection
+        sorted_links = sorted(final_scores.items(), key=lambda x: x[1], reverse=True)
+        top_normalized_links = [x[0] for x in sorted_links[:self.target_count]]
+        
+        winner_repo = ArticleRepository()
+        
+        print("\n🏆 Pipeline Selections:")
+        for norm_link in top_normalized_links:
+            # Find original article object
+            for art in repository.articles:
                 if normalize_url(art.link) == norm_link:
-                    winner_corpus.add_article(art)
-                    score_info = detailed_debug.get(norm_link, {})
-                    entry = {
-                        "title": art.title,
-                        "link": art.link,
-                        "score": score_info.get("weighted", 0),
-                        "scores_breakdown": score_info.get("breakdown", {}),
-                        "summary": art.summary[:200] + "..."
-                    }
-                    winner_json.append(entry)
-                    print(f"  {entry['score']:.1f} | {entry['title'][:60]}...")
+                    winner_repo.add(art)
+                    score_data = debug_map.get(norm_link, {})
+                    print(f"  {score_data.get('weighted',0):.1f} | {art.title[:60]}...")
                     break
-        return winner_corpus, winner_json, total_trial_cost
+                    
+        return winner_repo, total_cost
 
-CLAUDE_RANK = "claude-opus-4-6"
-GEMINI_RANK = "gemini-3-pro-preview"
-MODEL_SUMMARY = "gemini-3-pro-preview"
-
-class DailyTrial:
-    def __init__(self, db_url=None):
-        self.db_url = db_url
-        self.summarized_articles = []
+class IntelligencePipeline:
+    """
+    The Core Engine.
+    Orchestrates the flow from Raw Data -> Deep Analysis -> Consensus Voting -> Newsletter.
+    """
+    def __init__(self, db_url: Optional[str] = None):
+        self.repo = ArticleRepository(db_url)
+        self.summarized_articles: List[Article] = []
         self.total_cost = 0.0
+        
+        # Initialize Clients
         self.gemini_client = genai.Client(api_key=os.getenv("GEMINI_API_KEY"))
-        # 10 minute timeout for Opus
-        self.anthropic_client = Anthropic(api_key=os.getenv("ANTHROPIC_API_KEY"), timeout=600.0) if os.getenv("ANTHROPIC_API_KEY") and Anthropic else None
+        self.anthropic_client = None
+        if os.getenv("ANTHROPIC_API_KEY") and Anthropic:
+            self.anthropic_client = Anthropic(api_key=os.getenv("ANTHROPIC_API_KEY"), timeout=600.0)
 
-    def _track_cost(self, model, input_chars, output_chars):
+    def _track_cost(self, model: str, input_chars: int, output_chars: int):
         in_tok = input_chars / 4
         out_tok = output_chars / 4
-        rates = PRICING.get(model, {"input": 0, "output": 0})
-        cost = (in_tok / 1e6 * rates["input"]) + (out_tok / 1e6 * rates["output"])
-        self.total_cost += cost
-        return cost
+        rates = ModelRegistry.PRICING.get(model, {"input": 0, "output": 0})
+        self.total_cost += (in_tok / 1e6 * rates["input"]) + (out_tok / 1e6 * rates["output"])
 
-    def run_stage_1_analysis(self, corpus):
-        print(f"\n🕵️  DailyTrial Stage 1: Deep Analysis on {len(corpus.articles)} articles...")
-        stage1_debug = []
-        for idx, art in enumerate(corpus.articles):
-            print(f"   [{idx+1}/{len(corpus.articles)}] Analyzing: {art.title[:50]}...")
+    def run_deep_analysis(self, repository: ArticleRepository):
+        """Stage 1 of Daily Cycle: Scrape and Analyze full text."""
+        print(f"\n🕵️  Analysis Phase: Processing {len(repository.articles)} articles...")
+        stage_debug = []
+        
+        for idx, art in enumerate(repository.articles):
+            print(f"   [{idx+1}/{len(repository.articles)}] Analyzing: {art.title[:50]}...")
+            
+            # Scrape
             try:
                 downloaded = trafilatura.fetch_url(art.link)
                 full_text = trafilatura.extract(downloaded) if downloaded else ""
-            except Exception as e:
-                print(f"      ⚠️ Scrape failed: {e}")
+            except Exception:
                 full_text = ""
-            if not full_text or len(full_text) < 300: full_text = art.summary
+            
+            # Fallback to summary if scrape fails
+            if not full_text or len(full_text) < 300: 
+                full_text = art.summary
+                
             prompt = DAILY_SUMMARY_PROMPT_TEMPLATE.format(full_text=full_text[:25000])
             
-            # Wrapped call
-            def _analyze():
-                resp = self.gemini_client.models.generate_content(model=MODEL_SUMMARY, contents=prompt)
-                return resp.text
-
+            # AI Analysis
             try:
-                analysis = api_retry(_analyze, description="Stage 1 Analysis")
-                cost = self._track_cost(MODEL_SUMMARY, len(prompt), len(analysis))
-                stage1_debug.append({"title": art.title, "analysis": analysis, "cost": cost})
+                # Direct client call for simplicity or wrap in GenerativeAIClient
+                # Using gemini-3-pro for high quality analysis
+                model = ModelRegistry.GEMINI_REASONING
+                
+                @retry_policy(description="Analysis Generation")
+                def _call_api():
+                    return self.gemini_client.models.generate_content(model=model, contents=prompt).text
+                
+                analysis = _call_api()
+                self._track_cost(model, len(prompt), len(analysis))
+                
+                stage_debug.append({"title": art.title, "analysis": analysis})
             except Exception:
-                analysis = f"Analysis failed after retries. Original Summary: {art.summary}"
+                analysis = f"Analysis failed. Original Summary: {art.summary}"
 
+            # Hydrate Object & Persist
             art.metadata['deep_analysis'] = analysis
             self.summarized_articles.append(art)
-            self._save_to_db(art, analysis)
-        if SHOW_FULL_JSON_OUTPUT: _debug_dump("daily_stage1_analysis", stage1_debug)
+            self.repo.upsert_analysis(art, analysis)
+            
+        if SHOW_FULL_JSON_OUTPUT: debug_dump("stage_analysis", stage_debug)
         print(f"   💰 Cumulative Cost: ${self.total_cost:.4f}")
-        return self.summarized_articles
 
-    def run_stage_2_ensemble(self):
+    def run_consensus_voting(self):
+        """Stage 2: The Ensemble Vote (Gemini + Claude)."""
         if not self.summarized_articles: return []
-        print(f"\n🗳️  DailyTrial Stage 2: The Board of Directors (Gemini & Claude)...")
+        
+        print(f"\n🗳️  Consensus Phase: Board of Directors Voting...")
+        
+        # Prepare Candidate List
         candidates_text = ""
-        for i, art in enumerate(self.summarized_articles):
-            analysis_snippet = art.metadata.get('deep_analysis', '')[:400].replace("\n", " ")
-            candidates_text += f"- TITLE: {art.title}\n  LINK: {art.link}\n  SUMMARY: {analysis_snippet}\n\n"
+        for art in self.summarized_articles:
+            snippet = art.metadata.get('deep_analysis', '')[:400].replace("\n", " ")
+            candidates_text += f"- TITLE: {art.title}\n  LINK: {art.link}\n  SUMMARY: {snippet}\n\n"
+            
         voting_prompt = DAILY_VOTING_PROMPT_TEMPLATE.format(candidates_text=candidates_text)
         votes = {i: 0 for i in range(len(self.summarized_articles))}
-        debug_votes = {"gemini": [], "claude": []}
         
-        # Gemini Vote Wrapped
-        def _vote_gemini():
-            print(f"   🤖 Gemini ({GEMINI_RANK}) is voting...")
-            resp = self.gemini_client.models.generate_content(model=GEMINI_RANK, contents=voting_prompt, config=types.GenerateContentConfig(response_mime_type="application/json", temperature=0.0))
-            return resp.text
-
+        # --- VOTER 1: GEMINI ---
         try:
-            resp_text = api_retry(_vote_gemini, description="Gemini Vote")
-            data = json.loads(resp_text)
-            winners = data.get("winners", [])
-            debug_votes["gemini"] = winners
-            self._track_cost(GEMINI_RANK, len(voting_prompt), len(resp_text))
+            print(f"   🤖 Gemini ({ModelRegistry.GEMINI_REASONING}) is voting...")
+            @retry_policy()
+            def _vote_gemini():
+                return self.gemini_client.models.generate_content(
+                    model=ModelRegistry.GEMINI_REASONING, 
+                    contents=voting_prompt, 
+                    config=types.GenerateContentConfig(response_mime_type="application/json", temperature=0.0)
+                ).text
+            
+            resp_text = _vote_gemini()
+            winners = json.loads(resp_text).get("winners", [])
+            self._track_cost(ModelRegistry.GEMINI_REASONING, len(voting_prompt), len(resp_text))
+            
             for item in winners:
                 idx = fuzzy_match_article(item.get("title"), item.get("link"), self.summarized_articles)
                 if idx != -1: votes[idx] += 1
-                else: print(f"      ⚠️ Gemini hallucinated: {item.get('title')[:30]}...")
-        except Exception as e: print(f"      ⚠️ Gemini vote failed completely: {e}")
+        except Exception as e:
+            print(f"      ⚠️ Gemini vote failed: {e}")
 
-        # Claude Vote Wrapped
+        # --- VOTER 2: CLAUDE ---
         if self.anthropic_client:
-            def _vote_claude():
-                print(f"   🎭 Claude ({CLAUDE_RANK}) is voting...")
-                resp = self.anthropic_client.messages.create(model=CLAUDE_RANK, max_tokens=1000, temperature=0.0, messages=[{"role": "user", "content": voting_prompt}])
-                return resp.content[0].text
             try:
-                txt = api_retry(_vote_claude, description="Claude Vote")
-                self._track_cost(CLAUDE_RANK, len(voting_prompt), len(txt))
+                print(f"   🎭 Claude ({ModelRegistry.CLAUDE_OPUS}) is voting...")
+                @retry_policy()
+                def _vote_claude():
+                    return self.anthropic_client.messages.create(
+                        model=ModelRegistry.CLAUDE_OPUS, 
+                        max_tokens=1000, 
+                        temperature=0.0, 
+                        messages=[{"role": "user", "content": voting_prompt}]
+                    ).content[0].text
+                
+                txt = _vote_claude()
+                self._track_cost(ModelRegistry.CLAUDE_OPUS, len(voting_prompt), len(txt))
+                
+                # Extract JSON from Claude response
                 match = re.search(r'\{.*\}', txt, re.DOTALL)
                 if match:
-                    data = json.loads(match.group())
-                    winners = data.get("winners", [])
-                    debug_votes["claude"] = winners
+                    winners = json.loads(match.group()).get("winners", [])
                     for item in winners:
                         idx = fuzzy_match_article(item.get("title"), item.get("link"), self.summarized_articles)
                         if idx != -1: votes[idx] += 1
-                        else: print(f"      ⚠️ Claude hallucinated: {item.get('title')[:30]}...")
-            except Exception as e: print(f"      ⚠️ Claude vote failed completely: {e}")
+            except Exception as e:
+                print(f"      ⚠️ Claude vote failed: {e}")
 
-        if SHOW_FULL_JSON_OUTPUT: _debug_dump("daily_stage2_votes", debug_votes)
+        # --- TALLY ---
         ranked_indices = sorted(votes, key=votes.get, reverse=True)
         final_selection = []
-        print("\n   🏆 Ensemble Results:")
+        
+        print("\n   🏆 Consensus Results:")
         for idx in ranked_indices:
             score = votes[idx]
             if score > 0:
                 art = self.summarized_articles[idx]
                 art.metadata['ensemble_score'] = score
                 final_selection.append(art)
+                
+                # CRITICAL FIX: Persist score to DB for testing/debugging
+                self.repo.upsert_analysis(art, art.metadata.get('deep_analysis'))
+                
                 stars = "★" * score
                 print(f"      {stars} (Score {score}): {art.title[:50]}...")
-        print(f"   💰 Cumulative Cost: ${self.total_cost:.4f}")
+                
         return final_selection
 
-    def run_stage_3_newsletter(self):
-        print("\n✍️  DailyTrial Stage 3: Writing The Daily Briefing...")
+    def generate_newsletter(self) -> str:
+        """Stage 3: Synthesis."""
+        print("\n✍️  Synthesis Phase: Writing The Daily Briefing...")
         
         if not self.summarized_articles:
-            print("   ⚠️ No articles to write about.")
+            print("   ⚠️ No articles available.")
             return ""
 
-        # --- STEP A: ORGANIZE DATA (SPLIT INTO DEEP DIVE VS SECTOR WATCH) ---
+        # --- STEP A: ORGANIZE DATA (DEEP DIVE vs SECTOR WATCH) ---
         deep_dive_text = ""
         sector_watch_text = ""
         
-        # 1. Sort articles by Ensemble Score (Highest first)
-        # This ensures the best stories are processed first
+        # Sort by score descending
         sorted_articles = sorted(
             self.summarized_articles, 
             key=lambda x: x.metadata.get('ensemble_score', 0), 
             reverse=True
         )
 
-        # 2. Distribute into buckets
         for art in sorted_articles:
             score = art.metadata.get('ensemble_score', 0)
-            # Create the text entry for the AI
             entry = f"TITLE: {art.title}\nLINK: {art.link}\nSCORE: {score}\nANALYSIS: {art.metadata.get('deep_analysis')}\n---\n"
             
-            # LOGIC: 
-            # If Score >= 2 (Unanimous or High Consensus) -> DEEP DIVE
-            # If Score < 2 (Split decision or low priority) -> SECTOR WATCH
+            # Logic: Score >= 2 is Deep Dive, else Sector Watch
             if score >= 2:
                 deep_dive_text += entry
             else:
                 sector_watch_text += entry
 
-        # 3. Fail-safe: If NO articles got a high score, force top 3 into Deep Dive
-        # otherwise the Deep Dive section would be empty.
+        # Fail-safe: Ensure deep dive isn't empty
         if not deep_dive_text and sorted_articles:
-            print("   ⚠️ No high scores found. Forcing top 3 into Deep Dive.")
+            print("   ⚠️ No high scores. Promoting top 3 to Deep Dive.")
             for art in sorted_articles[:3]:
                 deep_dive_text += f"TITLE: {art.title}\nLINK: {art.link}\nANALYSIS: {art.metadata.get('deep_analysis')}\n---\n"
 
-        # Prepare bibliography list text (Done once for all articles)
-        articles_list_text = ""
-        for art in sorted_articles:
-            articles_list_text += f"- Title: {art.title}\n  URL: {art.link}\n\n"
+        # Bibliography list
+        bib_text = "".join([f"- Title: {a.title}\n  URL: {a.link}\n\n" for a in sorted_articles])
 
         today_str = datetime.now().strftime("%B %d, %Y")
-        formatted_system_prompt = DAILY_NEWSLETTER_SYSTEM_PROMPT_TEMPLATE.format(date=today_str)
+        sys_prompt = DAILY_NEWSLETTER_SYSTEM_PROMPT_TEMPLATE.format(date=today_str)
 
-        # --- RETRY LOOP ---
-        MAX_RETRIES = 5
-        
-        for attempt in range(1, MAX_RETRIES + 1):
-            try:
-                print(f"   🤖 Generating Body Content (Attempt {attempt}/{MAX_RETRIES})...")
-                
-                # 1. Main Newsletter Call
-                body_resp = self.gemini_client.models.generate_content(
-                    model="gemini-3-pro-preview",
-                    # UPDATED: We now pass the specific blocks to the prompt template
-                    contents=DAILY_NEWSLETTER_PROMPT_TEMPLATE.format(
-                        date=today_str, 
-                        deep_dive_block=deep_dive_text, 
-                        context_block=sector_watch_text
-                    ),
-                    config=types.GenerateContentConfig(
-                        system_instruction=formatted_system_prompt,
-                        temperature=0.7,
-                        max_output_tokens=40000 
-                    )
+        @retry_policy()
+        def _generate_body():
+            print("   🤖 Generating Main Body...")
+            return self.gemini_client.models.generate_content(
+                model=ModelRegistry.GEMINI_REASONING,
+                contents=DAILY_NEWSLETTER_PROMPT_TEMPLATE.format(
+                    date=today_str, 
+                    deep_dive_block=deep_dive_text, 
+                    context_block=sector_watch_text
+                ),
+                config=types.GenerateContentConfig(
+                    system_instruction=sys_prompt, 
+                    temperature=0.7, 
+                    max_output_tokens=40000
                 )
-                markdown_body = body_resp.text.strip()
+            ).text
 
-                # 2. Bibliography Call
-                print("   📚 Generating Clean Reference List...")
-                bib_resp = self.gemini_client.models.generate_content(
-                    model="gemini-3-pro-preview",
-                    contents=BIBLIOGRAPHY_PROMPT.format(articles_text=articles_list_text),
-                    config=types.GenerateContentConfig(
-                        temperature=0.3,
-                    )
-                )
-                markdown_bib = bib_resp.text.strip()
+        @retry_policy()
+        def _generate_bib():
+            print("   📚 Generating Bibliography...")
+            return self.gemini_client.models.generate_content(
+                model=ModelRegistry.GEMINI_REASONING,
+                contents=BIBLIOGRAPHY_PROMPT.format(articles_text=bib_text),
+                config=types.GenerateContentConfig(temperature=0.3)
+            ).text
 
-                # 3. Combine & Save
-                final_content = f"{markdown_body}\n\n---\n\n## Reference Feed\n\n{markdown_bib}"
-                
-                self._save_blog_entry(final_content)
-                print(f"   ✅ Blog entry generated ({len(final_content)} chars)")
-                
-                return final_content # <--- SUCCESS! Exit function.
-
-            except Exception as e:
-                print(f"   ⚠️ Attempt {attempt} failed: {e}")
-                if attempt < MAX_RETRIES:
-                    print("   ⏳ Retrying in 5 seconds...")
-                    time.sleep(5)
-                else:
-                    print("   ❌ All 5 attempts failed. Giving up.")
-                    return ""
-
-    def _save_to_db(self, article, rationale):
-        if not self.db_url: return
         try:
-            conn = psycopg2.connect(self.db_url)
-            cur = conn.cursor()
-            cur.execute('''CREATE TABLE IF NOT EXISTS important (link TEXT PRIMARY KEY, title TEXT, summary TEXT, published TIMESTAMP, source TEXT, feed_label TEXT, metadata JSONB, chosen_at TIMESTAMP, rationale TEXT);''')
-            cur.execute("""INSERT INTO important (link, title, summary, published, source, feed_label, metadata, chosen_at, rationale) VALUES (%s, %s, %s, %s, %s, %s, %s, NOW(), %s) ON CONFLICT (link) DO UPDATE SET rationale = EXCLUDED.rationale, metadata = EXCLUDED.metadata, chosen_at = NOW()""", (article.link, article.title, article.summary, article.published, article.source, article.feed_label, Json(article.metadata), rationale))
-            conn.commit()
-            cur.close()
-            conn.close()
-        except Exception as e: print(f"      ❌ DB Save Error: {e}")
-
-    def _save_blog_entry(self, content):
-        if not self.db_url: return
-        try:
-            conn = psycopg2.connect(self.db_url)
-            cur = conn.cursor()
-            cur.execute('''CREATE TABLE IF NOT EXISTS blog_entries (entry_date DATE PRIMARY KEY, content TEXT, created_at TIMESTAMP DEFAULT NOW());''')
-            today = datetime.now().date()
-            cur.execute("""INSERT INTO blog_entries (entry_date, content, created_at) VALUES (%s, %s, NOW()) ON CONFLICT (entry_date) DO UPDATE SET content = EXCLUDED.content, created_at = NOW()""", (today, content))
-            conn.commit()
-            cur.close()
-            conn.close()
-            print(f"   ✅ Blog entry saved to DB for date: {today}")
-        except Exception as e: print(f"      ❌ Blog DB Save Error: {e}")
+            body = _generate_body().strip()
+            bib = _generate_bib().strip()
+            
+            final_content = f"{body}\n\n---\n\n## Reference Feed\n\n{bib}"
+            self.repo.save_blog_entry(final_content)
+            
+            print(f"   ✅ Briefing generated ({len(final_content)} chars)")
+            return final_content
+        except Exception as e:
+            print(f"   ❌ Synthesis Failed: {e}")
+            return ""
